@@ -1,30 +1,17 @@
+from backend.master import building, state
 from enum import IntEnum
+import random
 
-class state(IntEnum):
-    blue = -1
-    grey = 0
-    red = 1
-
-class building(IntEnum):
-    empty = 0
-    factory = 1
-    silo = 2
-
-class bomb(IntEnum):
-    H_Bomb = 0
-    A_Bomb = 1
-    Tsar_Bomb = 2
-    Proton_Bomb = 3
 
 class Tile:
     def __init__(self, state, building):
         self.state = state
         self.building = building
 
-    def get_building(self):
+    def get_building():
         return building
-
-    def get_state(self):
+    
+    def get_state():
         return state
 
     def set_building(self, building):
@@ -33,6 +20,74 @@ class Tile:
     def set_state(self, state):
         self.state = state
 
+class Board:
+    def __init__(self, board):
+        self.board = [15][30]
+        self.board.fill_board()
+
+    def fill_board(self):
+        for i in range(0, len(self.board)):
+            for j in range(0, len(self.board[i])):
+                if j < 15:
+                    self.board[i][j] = Tile(1, 0)
+                else:
+                    self.board[i][j] = Tile(-1, 0)
+
+    def get_board(self, player):
+        board = [15][30]
+        for i in range (0, len(self.board)):
+            for j in range(0, len(self.board[i])):
+                if player == 1:
+                    if self.board[i][j].get_state() >= 0:
+                        board[i][j] = self.board[i][j]
+                    else:
+                        board[i][j] = Tile(-1, 0)
+                if player == -1:
+                    if self.board[i][j].get_state() <= 0:
+                        board[i][j] = self.board[i][j]
+                    else:
+                        board[i][j] = Tile(1, 0)
+        return board
+
+    def get_factory(self, player):
+        factories = 0
+        for i in range (0, len(self.board)):
+            for j in range(0, len(self.board[i])):
+                if player == 1:
+                    if self.board[i][j].get_building() == 1 & self.board[i][j].get_state() == 1:
+                        factories  += 1
+                if player == -1:
+                    if self.board[i][j].get_building() == 1 & self.board[i][j].get_state() == -1:
+                        factories  += 1
+        return factories
+
+    def get_silo(self, player):
+        silo = 0
+        for i in range (0, len(self.board)):
+            for j in range(0, len(self.board[i])):
+                if player == 1:
+                    if self.board[i][j].get_building() == 2 & self.board[i][j].get_state() == 1:
+                        silo  += 1
+                if player == -1:
+                    if self.board[i][j].get_building() == 2 & self.board[i][j].get_state() == -1:
+                        silo  += 1
+        return silo
+
+    def apply_bomb(self, bomb_template, x, y):
+        for i in range(0, len(bomb_template)):
+            for j in range(0, len(bomb_template[i])):
+                if bomb_template[i][j] == 1:
+                    self.board[x + (i - 2)][y + (j - 2)].setState(0)
+
+class State(IntEnum):
+    blue = -1
+    grey = 0
+    red = 1
+
+class Building(IntEnum):
+    empty = 0
+    factory = 1
+    silo = 2
 
 class Bomb():
     def __init__(self, id, name, rarity, description, shape):
@@ -171,7 +226,6 @@ class Cards():
         ])
         self.bombs.append(England)
 
-
 class Game():
     def __init__(self):
         self.deck = [None]
@@ -182,6 +236,8 @@ class Game():
         self.blue_hand_size = Board.get_silo_blue()
         self.setup = 0
         self.game_state = 1
+        self.board_width = 30
+        self.board_height = 15
 
     def placeFactories(turn, data):
         for i in range (0,3):
@@ -203,7 +259,7 @@ class Game():
                 Board[x][y].building = 2   
 
 
-    def get_hand_options(factories):
+    def get_hand_options(self, factories):
         hand_options = [None]
         for i in range(0, factories):
             hand_options.append(self.get_card())
@@ -214,8 +270,22 @@ class Game():
         return random.choice(self.deck)
         
 
-    def gameOver():
-        return 0
+    def gameOver(self):
+        board = Board()
+        board = board.get_Board(self.player)
+        red_tiles = 0
+        blue_tiles = 0
+        for i in range(0, self.board_height):
+            for j in range(0, self.board_width):
+                if board[i][j].get_state() == -1:
+                    blue_tiles += 1
+                if board[i][j].get_state() == 1:
+                    red_tiles += 1
+        if red_tiles == 0:
+            self.game_state = 0
+        if blue_tiles ==0:
+            self.game_state = 0
+
 
     def deck_builder(self,deck):
         card_holder = Cards()
@@ -255,6 +325,8 @@ class Game():
             if player ==-1:
                 selected_card = self.blue_hand.pop(selected_card)
             #need to implement placing of bomb 
-
+            self.gameOver()
             Board.get_board(player)
             player = player*(-1)
+
+#need to write a function to get card.

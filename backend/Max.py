@@ -159,6 +159,8 @@ class Game():
         self.blue_hand_size = Board.get_silo_blue()
         self.setup = 0
         self.game_state = 1
+        self.board_width = 30
+        self.board_height = 15
 
     def placeFactories(turn, data):
         for i in range (0,3):
@@ -191,8 +193,22 @@ class Game():
         return random.choice(self.deck)
         
 
-    def gameOver():
-        return 0
+    def gameOver(self):
+        board = Board()
+        board = board.get_Board(self.player)
+        red_tiles = 0
+        blue_tiles = 0
+        for i in range(0, self.board_height):
+            for j in range(0, self.board_width):
+                if board[i][j].get_state() == -1:
+                    blue_tiles += 1
+                if board[i][j].get_state() == 1:
+                    red_tiles += 1
+        if red_tiles == 0:
+            self.game_state = 0
+        if blue_tiles ==0:
+            self.game_state = 0
+
 
     def deck_builder(self,deck):
         card_holder = Cards()
@@ -232,7 +248,7 @@ class Game():
             if player ==-1:
                 selected_card = self.blue_hand.pop(selected_card)
             #need to implement placing of bomb 
-
+            self.gameOver()
             Board.get_board(player)
             player = player*(-1)
 
