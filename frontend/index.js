@@ -1,6 +1,9 @@
-const RED = 0,
-    WHITE = 1,
-    GREY = 2;
+const BLUE = -1,
+    GREY = 0,
+    RED = 1;
+const EMPTY = 1,
+    SILO = 1,
+    FACTORY = 2;
 const state = {
     turn: 0,
     hand: {
@@ -16,6 +19,17 @@ const state = {
         height: 12,
     },
 };
+
+const asset = (src) => {
+    const img = new Image();
+    img.src = "assets/" + src;
+    return img
+}
+
+const frame = asset("frame.png");
+const redTile = asset("redTile.png");
+const greyTile = asset("greyTile.png");
+const blueTile = asset("blueTile.png");
 
 const main = async () => {
     const canvas = document.getElementById("root");
@@ -50,6 +64,10 @@ const main = async () => {
         if (colour) ctx.fillStyle = colour;
         const { xo, yo, scale } = getViewport();
         ctx.fillRect(x * scale + xo, y * scale + yo, w * scale, h * scale);
+    };
+    const drawImage = ({ x, y, w, h }, image) => {
+        const { xo, yo, scale } = getViewport();
+        ctx.drawImage(image, x * scale + xo, y * scale + yo, w * scale, h * scale);
     };
     const collideRect = ({ x, y }, { x: rx, y: ry, w: rw, h: rh }) => {
         if (x < rx || y < ry || x >= rx + rw || y >= ry + rh) return false;
@@ -91,14 +109,14 @@ const main = async () => {
                     drawRect(rect(cardRect.x + 2 * (side * 2 - 1), cardRect.y, cardRect.w, cardRect.h), "#0001");
                     drawRect(rect(cardRect.x + 1 * (side * 2 - 1), cardRect.y, cardRect.w, cardRect.h), "#0001");
                 }
-                drawRect(cardRect, "#f00");
+                drawImage(cardRect, frame);
             }
             const step = cardWidth - cardOverlap + (hover ? hoverXOffset : 0);
             if (side) x -= step;
             else x += step;
         });
         if (hoverCard) {
-            drawRect(hoverCard, "#00f");
+            drawImage(hoverCard, frame);
         }
     };
 
@@ -109,14 +127,14 @@ const main = async () => {
         const tileHeight = gridRect.h / state.grid.height;
         for (let x = 0; x < state.grid.width; x++) {
             for (let y = 0; y < state.grid.height; y++) {
-                colour = y % 2 === x % 2 ? "#0f0" : "#0ff";
-                drawRect(rect(gridRect.x + x * tileWidth, gridRect.y + y * tileHeight, tileWidth, tileHeight), colour);
+                tile = y % 2 === x % 2 ? redTile : blueTile;
+                drawImage(rect(gridRect.x + x * tileWidth, gridRect.y + y * tileHeight, tileWidth, tileHeight), tile);
             }
         }
     };
 
     const renderStats = (side) => {
-        const paneRect = rect(side ? 1920 - 250 : 50, 150, 200, 1080 - 400);
+        const paneRect = rect(side ? 1920 - 250 : 50, 125, 200, 1080 - 350);
         drawRect(paneRect, "#ff0");
     };
 
@@ -130,8 +148,8 @@ const main = async () => {
         renderStats(0);
         renderStats(1);
 
-        renderHand(0, !true);
-        renderHand(1, !false);
+        renderHand(0, true);
+        renderHand(1, false);
 
         requestAnimationFrame(render);
     };
