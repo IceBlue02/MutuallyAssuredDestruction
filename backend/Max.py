@@ -11,17 +11,34 @@ class building(IntEnum):
     silo = 2
 
 class bomb():
-    def __init__(self, name, shape):
+    def __init__(self, name, rarity, description, shape):
         self.name = name 
+        self.rarity = rarity
+        self.description = description
         self.shape = shape
 
 
-class game():
+class cards):
     def __init__(self):
         self.bombs = [None]
 
-    def initalBomb(self,number):
-        square = bomb("Square", [
+
+    def rarity(occurance):
+        if occurance == "super rare":
+            return 1
+        if occurance == "rare":
+            return 2
+        if occurance == "uncommon":
+            return 4
+        if occurance == "average":
+            return 8
+        if occurance == "common":
+            return 16
+        else:
+            return 0
+
+    def initaliseBombs(self):
+        square = bomb("Square",rarity("average"), "Simple, but effective.", [
             [1,1,1,1,0],
             [1,1,1,1,0],
             [1,1,1,1,0],
@@ -30,7 +47,7 @@ class game():
         ])
         self.bombs.append(square)
 
-        circle = bomb("Circle",[
+        circle = bomb("Circle", rarity("rare"), "The circle of (no) life.", [
             [0,1,1,1,0],
             [1,1,1,1,1],
             [1,1,1,1,1],
@@ -40,7 +57,7 @@ class game():
         )
         self.bombs.append(circle)
 
-        diamond = bomb("Bomb", [
+        diamond = bomb("Bomb",rarity("common"), "Diamonds are forever. So is the damage left by this."[
             [0,1,1,1,0,],
             [1,1,1,1,1,],
             [1,1,1,1,1,],
@@ -50,7 +67,7 @@ class game():
 
         self.bombs.append(diamond)
 
-        target= bomb("Target", [
+        target= bomb("Target",rarity("rare"), "You can't miss.",[
             [1,1,1,1,1],
             [1,0,0,0,1],
             [1,0,1,0,1],
@@ -59,7 +76,8 @@ class game():
         ])
         self.bombs.append(target)
 
-        www_dot_bomb = bomb("wwwDotBomb ", [
+
+        www_dot_bomb = bomb("wwwDotBomb ", rarity("common"),"...................", [
             [1,0,1,0,1],
             [0,1,0,1,0],
             [1,0,1,0,1],
@@ -68,16 +86,16 @@ class game():
         ])
         self.bombs.append(www_dot_bomb)
 
-        one = bomb("One", [ 
+        X = bomb("X", rarity(""),"It marks the spot. And hits it.", [ 
             [1,0,0,0,1],
             [0,1,0,1,0],
             [0,0,1,0,0],
             [0,1,0,1,0],
-            [1,0,0,0,1], 
+            [1,0,0,0,1],
         ])
-        self.bombs.append(1)
+        self.bombs.append(X)
 
-        H0 = bomb("H0", [ 
+        H0 = bomb("H0",rarity("common"), "Can you add the H0,Bomb to the game?' 'Yeah sure I got you'", [ 
             [1,0,0,0,1],
             [1,0,0,0,1],
             [1,1,1,1,1],
@@ -86,7 +104,7 @@ class game():
         ])
         self.bombs.append(H0)
 
-        PO = bomb("P0", [ 
+        PO = bomb("P0", rarity("average"),"Not sure why you'd make a bomb like this, but there you go.", [ 
             [1,1,1,1,0],
             [1,1,1,1,0],
             [1,1,1,1,0],
@@ -95,7 +113,7 @@ class game():
         ])
         self.bombs.append(P0)
 
-        cherry = bomb("Cherry", [ 
+        cherry = bomb("Cherry", rarity("super rare"), "Yep, it's a pair of Cherries. ", [ 
             [0,0,1,0,0],
             [0,0,1,0,0],
             [0,0,1,0,0],
@@ -104,7 +122,7 @@ class game():
         ])
         self.bombs.append(cherry)
 
-        e = bomb("e", [ 
+        e = bomb("e", rarity("rare"), "2.71828182845904523536028747135", [ 
             [1,1,1,1,1],
             [1,0,0,0,1],
             [1,1,1,1,1],
@@ -113,7 +131,7 @@ class game():
         ])
         self.bombs.append(e)
 
-        A0 = bomb("A0", [ 
+        A0 = bomb("A0",rarity("common"), "I know I'll be A0,O, A0,O0,K." [ 
             [0,0,1,0,0],
             [0,1,0,1,0],
             [0,1,1,1,0],
@@ -122,7 +140,7 @@ class game():
         ])
         self.bombs.append(A0)
 
-        England = bomb("ENGLAND", [ 
+        England = bomb("ENGLAND",rarity("common"), "RULE BRITANNIA, BRITANNIA RULES THE WAVES", [ 
             [0,0,1,0,0],
             [0,0,1,0,0],
             [1,1,1,1,1],
@@ -156,6 +174,12 @@ def get_hand_options(factories):
         hand_options.append(get_card())
     return hand_options
 
+def cards():
+    cards = cards()
+    cards.initaliseBombs()
+    
+
+cards =[None]
 #1 = red
 # -1 = blue
 player = 1
