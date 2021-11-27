@@ -25,7 +25,7 @@ class Board:
 
     def fill_board(self):
         for i in range(0, len(self.board)):
-            for j in range(len(self.board[i])):
+            for j in range(0, len(self.board[i])):
                 if j < 15:
                     self.board[i][j] = Tile(1, 0)
                 else:
@@ -45,6 +45,7 @@ class Board:
                         board[i][j] = self.board[i][j]
                     else:
                         board[i][j] = Tile(1, 0)
+        return board
 
     def get_factory(self, player):
         factories = 0
@@ -58,12 +59,20 @@ class Board:
                         factories  += 1
         return factories
 
+    def get_silo(self, player):
+        silo = 0
+        for i in range (0, len(self.board)):
+            for j in range(0, len(self.board[i])):
+                if player == 1:
+                    if self.board[i][j].get_building() == 2 & self.board[i][j].get_state() == 1:
+                        silo  += 1
+                if player == -1:
+                    if self.board[i][j].get_building() == 2 & self.board[i][j].get_state() == -1:
+                        silo  += 1
+        return silo
 
-
-                
-    
-    def get_silo(self):
-        pass
-
-    def apply_bomb(self):
-        pass
+    def apply_bomb(self, bomb_template, x, y):
+        for i in range(0, len(bomb_template)):
+            for j in range(0, len(bomb_template[i])):
+                if bomb_template[i][j] == 1:
+                    self.board[x + (i - 2)][y + (j - 2)].setState(0)
