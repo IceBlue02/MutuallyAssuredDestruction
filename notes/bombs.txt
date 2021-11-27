@@ -57,7 +57,6 @@ X-X-X (13)
 
 Rarity: Common
 
-...................
 
 6. X
 
@@ -68,6 +67,8 @@ X---X
 X---X (9)
 
 It marks the spot. And hits it.
+
+Rarity: Common
 
 7. H-Bomb
 

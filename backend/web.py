@@ -1,8 +1,9 @@
 from datetime import MINYEAR
 from flask import Flask, render_template, Response, jsonify
+from master import Game
 
 app = Flask(__name__)
-#game = Game()
+game = Game()
 
 @app.route('/')
 def main():
@@ -34,9 +35,19 @@ def await_turn():
     def waitforturn():
         while True:
             #playercode = game.await_turn_change()
-            yield "event: turn\ndata: " + '{"player": ' + str(playercode) + "}\n\n"
+            yield "data: " + '{"player": ' + str(playercode) + "}\n\n"
 
     return Response(waitforturn(), mimetype="text/event-stream")
+
+@app.route("/connect", methods=["POST"])
+def on_connect():
+    return game.on_game_entry()
+
+@app.route("/await_start", methods=["GET"])
+def await_start():
+    def waitforstart():
+        while True:
+            yield "data: start\n\n"
 
 
 if __name__ == '__main__':
