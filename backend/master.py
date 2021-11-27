@@ -22,8 +22,8 @@ class Tile:
 
 class Board:
     def __init__(self):
-        self.board = [15][30]
-        self.board.fill_board()
+        self.board = [[None for x in range(30)] for x in range(15)]
+        self.fill_board()
 
     def fill_board(self):
         for i in range(0, len(self.board)):
@@ -34,7 +34,7 @@ class Board:
                     self.board[i][j] = Tile(-1, 0)
 
     def get_board(self, player):
-        board = [15][30]
+        board = [[None for x in range(30)] for x in range(15)]
         for i in range (0, len(self.board)):
             for j in range(0, len(self.board[i])):
                 if player == 1:
@@ -105,6 +105,7 @@ class Bomb():
 class Cards():
     def __init__(self):
         self.bombs = [None]
+        self.initaliseBombs()
 
     def rarity(self, occurance):
         if occurance == "super rare":
@@ -237,17 +238,34 @@ class Game():
         self.player = 1
         self.red_hand =[]
         self.blue_hand = []
-        self.red_hand_size = Board.get_silo(1)
-        self.blue_hand_size = Board.get_silo(-1)
+        self.game_board = Board()
+        self.red_hand_size = self.game_board.get_silo(1)
+        self.blue_hand_size = self.game_board.get_silo(-1)
         self.setup = 0
         self.game_state = 1
         self.board_width = 30
         self.board_height = 15
-        self.game_board = Board()
+        
+        self.cards = Cards()
         
         self.playersingame = 0
         self.turn_change_event = threading.Event()
         self.game_start_event = threading.Event()
+
+    def get_cards(self):
+        data = []
+        for c in self.cards.bombs:
+            if not c:
+                continue
+            print(c.id)
+            carddata = {}
+            carddata["id"] = c.id
+            carddata["name"] = c.name
+            carddata["rarity"] = c.rarity
+            carddata["shape"] = c.shape
+            data.append(carddata)
+
+        return data
 
     def on_game_entry(self):
         self.playersingame += 1
@@ -261,7 +279,7 @@ class Game():
     def await_game_start(self):
         print("Waiting for game start")
         self.game_start_event.wait()
-        return {"ready": False}
+        return {"ready": True}
 
     def placeFactories(self,turn, data):
 
@@ -370,3 +388,7 @@ class Game():
         return self.player
 
 #need to write a function to get card.
+
+if __name__ == "__main__":
+    g = Game()
+    print(g.get_cards())

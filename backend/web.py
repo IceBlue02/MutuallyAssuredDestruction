@@ -1,5 +1,5 @@
 from datetime import MINYEAR
-from flask import Flask, render_template, Response, jsonify
+from flask import Flask, render_template, Response, request, jsonify
 from master import Game
 
 app = Flask(__name__)
@@ -11,9 +11,9 @@ def main():
 
 @app.route("/place_bomb", methods=["POST"])
 def place_bomb():
-    player = request.form.get("player")
-    coords = request.form.get("position") # 2 length list
-    bombid = request.form.get("bombid") 
+    player = request.json.get("player")
+    coords = request.json.get("position") # 2 length list
+    bombid = request.json.get("bombid") 
     #Game.place_bomb(player, coords, bombid)
 
 
@@ -34,10 +34,14 @@ def get_game_state():
 def await_turn():
     def waitforturn():
         while True:
-            #playercode = game.await_turn_change()
+            playercode = game.await_turn_change()
             yield "data: " + '{"player": ' + str(playercode) + "}\n\n"
 
     return Response(waitforturn(), mimetype="text/event-stream")
+
+@app.route("/get_cards", methods=["GET"])
+def get_bombs():
+    return game.get_cards()
 
 @app.route("/connect", methods=["POST"])
 def on_connect():
