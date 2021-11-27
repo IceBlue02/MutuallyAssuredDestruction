@@ -6,6 +6,7 @@ const EMPTY = 1,
     FACTORY = 2;
 const state = {
     turn: 0,
+    selectedCard: 2,
     hand: {
         0: [1, 2, 3, 4, 5, 6, 7],
         1: [1, 2, 3, 4, 5, 6, 7],
@@ -13,18 +14,21 @@ const state = {
     mouse: {
         x: 0,
         y: 0,
+        down: false,
     },
     grid: {
         width: 20,
-        height: 12,
+        height: 10,
     },
+    animation: 0,
+    wasClickThisFrame: false,
 };
 
 const asset = (src) => {
     const img = new Image();
     img.src = "assets/" + src;
-    return img
-}
+    return img;
+};
 
 const frame = asset("frame.png");
 const redTile = asset("redTile.png");
@@ -36,10 +40,21 @@ const main = async () => {
     /** @type {CanvasRenderingContext2D} */
     const ctx = canvas.getContext("2d");
 
+    const start = Date.now();
+
     document.addEventListener("mousemove", (e) => {
         const { xo, yo, scale } = getViewport();
         state.mouse.x = (e.clientX - xo) / scale;
         state.mouse.y = (e.clientY - yo) / scale;
+    });
+    document.addEventListener("mousedown", (e) => {
+        if (e.button === 0) {
+            state.mouse.down = true;
+            state.wasClickThisFrame = true;
+        }
+    });
+    document.addEventListener("mouseup", (e) => {
+        if (e.button === 0) state.mouse.down = false;
     });
 
     const ro = new ResizeObserver(() => {
@@ -81,11 +96,14 @@ const main = async () => {
         const cardOverlap = cardWidth / 2;
         const hoverXOffset = cardOverlap / 2;
         const hoverYOffset = cardOverlap * 0.4;
+        const selectedYOffset = cardOverlap;
 
         let x = side ? 1920 - 75 - cardWidth : 75;
-        let y = 1080 - cardHeight - 50;
+        let y = 1080 - cardHeight - 25;
 
-        let hoverCard = null;
+        let hoverCard = null,
+            selectedCard = null,
+            newSelectedNum = null;
         state.hand[side].forEach((card, n) => {
             const topCard = side ? n === 0 : n === state.hand[side].length - 1;
             const bottomCard = !side ? n === 0 : n === state.hand[side].length - 1;
@@ -100,28 +118,29 @@ const main = async () => {
                 )
             );
             const cardRect = rect(x, y, cardWidth, cardHeight);
-            if (hover) {
+            const selected = n === state.selectedCard;
+            if (selected) {
+                cardRect.y -= selectedYOffset;
+                selectedCard = cardRect;
+            } else if (hover) {
                 cardRect.y -= hoverYOffset;
                 hoverCard = cardRect;
             } else {
-                if (n !== 0) {
-                    drawRect(rect(cardRect.x + 3 * (side * 2 - 1), cardRect.y, cardRect.w, cardRect.h), "#0001");
-                    drawRect(rect(cardRect.x + 2 * (side * 2 - 1), cardRect.y, cardRect.w, cardRect.h), "#0001");
-                    drawRect(rect(cardRect.x + 1 * (side * 2 - 1), cardRect.y, cardRect.w, cardRect.h), "#0001");
-                }
                 drawImage(cardRect, frame);
             }
-            const step = cardWidth - cardOverlap + (hover ? hoverXOffset : 0);
+            const step = cardWidth - cardOverlap + (hover || selected ? hoverXOffset : 0);
             if (side) x -= step;
             else x += step;
+
+            if (state.wasClickThisFrame && hover) newSelectedNum = n;
         });
-        if (hoverCard) {
-            drawImage(hoverCard, frame);
-        }
+        if (newSelectedNum !== null) state.selectedCard = newSelectedNum;
+        if (selectedCard) drawImage(selectedCard, frame);
+        if (hoverCard) drawImage(hoverCard, frame);
     };
 
     const renderGrid = () => {
-        const gridRect = rect(300, 100, 1920 - 600, 1080 - 300);
+        const gridRect = rect(300, 50, 1920 - 600, 1080 - 400);
 
         const tileWidth = gridRect.w / state.grid.width;
         const tileHeight = gridRect.h / state.grid.height;
@@ -139,6 +158,8 @@ const main = async () => {
     };
 
     const render = () => {
+        state.animation = ((Date.now() - start) / 1000) % 1;
+
         ctx.fillStyle = "#000";
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         drawRect(rect(0, 0, 1920, 1080), "#f0f");
@@ -151,6 +172,7 @@ const main = async () => {
         renderHand(0, true);
         renderHand(1, false);
 
+        state.wasClickThisFrame = false;
         requestAnimationFrame(render);
     };
 
