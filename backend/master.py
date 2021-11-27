@@ -11,24 +11,24 @@ class building(IntEnum):
     silo = 2
 
 class bomb(IntEnum):
-    H-Bomb = 0
-    A-Bomb = 1
-    Tsar-Bomb = 2
-    Proton-Bomb = 3
+    H_Bomb = 0
+    A_Bomb = 1
+    Tsar_Bomb = 2
+    Proton_Bomb = 3
 
 class Tile:
     def __init__(self, state, building):
         self.state = state
         self.building = building
 
-    def get_building():
+    def get_building(self):
         return building
 
-    def get_state():
+    def get_state(self):
         return state
 
-    def set_building(building):
+    def set_building(self, building):
         self.building = building
 
-    def set_state(state):
+    def set_state(self, state):
         self.state = state
