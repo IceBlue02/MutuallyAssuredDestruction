@@ -242,6 +242,7 @@ class Game():
         self.game_state = 1
         self.board_width = 30
         self.board_height = 15
+        self.game_board = Board()
 
     def placeFactories(turn, data):
         for i in range (0,3):
@@ -273,6 +274,8 @@ class Game():
     def get_card(self):
         return random.choice(self.deck)
         
+    def get_hand_size(self):
+        return self.game_board.get_silo(self.player)
 
     def gameOver(self):
         board = Board()
@@ -317,24 +320,25 @@ class Game():
                 self.setup = 1
         #start the game 
         while self.game_state == 1:
-            game_board.get_board(player)
-            game_board.get_hand_options(game_board.get_factory(player))
-            if player ==1:
+            self.game_board.get_board(self.player)
+            Game.get_hand_size(self.game_board)
+            self.game_board.get_hand_options(self.game_board.get_factory(player))
+            if self.player ==1:
                 self.red_hand.append(data["chosen"][0])
-            if player ==-1:
+            if self.player ==-1:
                 self.blue_hand.append(data["chosen"][0])
 
             selected_card = data["selected"][0]
-            if player ==1:
+            if self.player ==1:
                 selected_card = self.red_hand.pop(selected_card)
-            if player ==-1:
+            if self.player ==-1:
                 selected_card = self.blue_hand.pop(selected_card)
             #need to implement placing of bomb 
             x = data["coordinates"][0]
             y = data["coordinates"][1]
-            game_board.apply_bomb(self, selected_card.shape, x, y)
+            self.game_board.apply_bomb(self, selected_card.shape, x, y)
             self.gameOver()
-            game_board.get_board(player)
-            player = player*(-1)
+            self.game_board.get_board(self.player)
+            self.player = self.player*(-1)
 
 #need to write a function to get card.
