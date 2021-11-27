@@ -12,8 +12,67 @@ class Tile:
     def get_state():
         return state
 
-    def set_building(building):
+    def set_building(self, building):
         self.building = building
 
-    def set_state(state):
+    def set_state(self, state):
         self.state = state
+
+class Board:
+    def __init__(self, board):
+        self.board = [15][30]
+        self.board.fill_board()
+
+    def fill_board(self):
+        for i in range(0, len(self.board)):
+            for j in range(0, len(self.board[i])):
+                if j < 15:
+                    self.board[i][j] = Tile(1, 0)
+                else:
+                    self.board[i][j] = Tile(-1, 0)
+
+    def get_board(self, player):
+        board = [15][30]
+        for i in range (0, len(self.board)):
+            for j in range(0, len(self.board[i])):
+                if player == 1:
+                    if self.board[i][j].get_state() >= 0:
+                        board[i][j] = self.board[i][j]
+                    else:
+                        board[i][j] = Tile(-1, 0)
+                if player == -1:
+                    if self.board[i][j].get_state() <= 0:
+                        board[i][j] = self.board[i][j]
+                    else:
+                        board[i][j] = Tile(1, 0)
+        return board
+
+    def get_factory(self, player):
+        factories = 0
+        for i in range (0, len(self.board)):
+            for j in range(0, len(self.board[i])):
+                if player == 1:
+                    if self.board[i][j].get_building() == 1 & self.board[i][j].get_state() == 1:
+                        factories  += 1
+                if player == -1:
+                    if self.board[i][j].get_building() == 1 & self.board[i][j].get_state() == -1:
+                        factories  += 1
+        return factories
+
+    def get_silo(self, player):
+        silo = 0
+        for i in range (0, len(self.board)):
+            for j in range(0, len(self.board[i])):
+                if player == 1:
+                    if self.board[i][j].get_building() == 2 & self.board[i][j].get_state() == 1:
+                        silo  += 1
+                if player == -1:
+                    if self.board[i][j].get_building() == 2 & self.board[i][j].get_state() == -1:
+                        silo  += 1
+        return silo
+
+    def apply_bomb(self, bomb_template, x, y):
+        for i in range(0, len(bomb_template)):
+            for j in range(0, len(bomb_template[i])):
+                if bomb_template[i][j] == 1:
+                    self.board[x + (i - 2)][y + (j - 2)].setState(0)

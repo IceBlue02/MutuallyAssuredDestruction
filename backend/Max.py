@@ -43,7 +43,7 @@ class Cards():
             [1,1,1,1,0],
             [1,1,1,1,0],
             [1,1,1,1,0],
-            [1,1,1,1,0],
+            [0,0,0,0,0],
         ])
         self.bombs.append(square)
 
@@ -159,6 +159,8 @@ class Game():
         self.blue_hand_size = Board.get_silo_blue()
         self.setup = 0
         self.game_state = 1
+        self.board_width = 30
+        self.board_height = 15
 
     def placeFactories(turn, data):
         for i in range (0,3):
@@ -189,6 +191,23 @@ class Game():
 
     def get_card(self):
         return random.choice(self.deck)
+        
+
+    def gameOver(self):
+        board = Board()
+        board = board.get_Board(self.player)
+        red_tiles = 0
+        blue_tiles = 0
+        for i in range(0, self.board_height):
+            for j in range(0, self.board_width):
+                if board[i][j].get_state() == -1:
+                    blue_tiles += 1
+                if board[i][j].get_state() == 1:
+                    red_tiles += 1
+        if red_tiles == 0:
+            self.game_state = 0
+        if blue_tiles ==0:
+            self.game_state = 0
 
 
     def deck_builder(self,deck):
@@ -196,7 +215,7 @@ class Game():
         card_holder.initaliseBombs()
         for i in range(0,card_holder.length()):
             for _ in range(0,card_holder[i].rarity):
-                deck.apped(card_holder[i])
+                deck.append(card_holder[i])
    
     def main(self):
         deck = [None]
@@ -217,7 +236,7 @@ class Game():
         #start the game 
         while self.game_state == 1:
             Board.get_board(player)
-            Board.get_hand_options(get_factory(player))
+            Board.get_hand_options(Board.get_factory(player))
             if player ==1:
                 self.red_hand.append(data["chosen"][0])
             if player ==-1:
@@ -229,7 +248,7 @@ class Game():
             if player ==-1:
                 selected_card = self.blue_hand.pop(selected_card)
             #need to implement placing of bomb 
-
+            self.gameOver()
             Board.get_board(player)
             player = player*(-1)
 

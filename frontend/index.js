@@ -7,8 +7,6 @@ const EMPTY = 1,
     SILO = 1,
     FACTORY = 2;
 const state = {
-    turn: 0,
-    selectedCard: null,
     mouse: {
         x: 0,
         y: 0,
@@ -17,13 +15,6 @@ const state = {
     animation: 0,
     cursorPointer: false,
     wasClickThisFrame: false,
-    selectedBombShape: [
-        [0, 0, 1, 0, 0],
-        [0, 1, 1, 1, 0],
-        [1, 1, 1, 1, 1],
-        [0, 1, 1, 1, 0],
-        [0, 0, 1, 0, 0],
-    ],
     /** @type {HTMLCanvasElement} */
     canvas: null,
     /** @type {CanvasRenderingContext2D} */
@@ -113,6 +104,7 @@ class Entity {
         if (this.image) drawImage(this._rect, this.image, this._rotation, this._scale);
     }
 }
+
 class Tile extends Entity {
     constructor(rect, type) {
         super(rect);
@@ -120,6 +112,7 @@ class Tile extends Entity {
         this.image = type === RED ? redTile : type === BLUE ? blueTile : greyTile;
     }
 }
+
 class Card extends Entity {
     constructor(rect, player) {
         super(rect);
@@ -129,16 +122,16 @@ class Card extends Entity {
         this.animateScale = true;
     }
 }
+
 class Hand {
-    constructor(player) {
+    constructor(game, player) {
+        this.game = game;
         this.cards = [];
 
         this.player = player;
         this.large = this.player === P1;
 
-        this.cardWidth = this.large ? 200 : 100;
-
-        this.cardHeight = this.cardWidth * 1.4;
+        this.selectedCard = null;
 
         for (let i = 0; i < 10; i++) this.addCard();
     }
@@ -146,15 +139,18 @@ class Hand {
         this.cards.push(new Card(rect(), this.player));
     }
     render() {
+        const cardWidth = this.large ? (this.game.selectionActive ? 200 : 150) : 100;
+        const cardHeight = cardWidth * 1.4;
+
         const isP1 = this.player === P1;
 
-        const cardOverlap = this.cardWidth / ((this.cards.length + 5) / this.cards.length);
+        const cardOverlap = cardWidth / ((this.cards.length + 5) / this.cards.length);
         const hoverXOffset = cardOverlap / 2;
-        const hoverYOffset = this.cardWidth * 0.2;
-        const selectedYOffset = this.cardWidth / 2;
+        const hoverYOffset = cardWidth * 0.2;
+        const selectedYOffset = cardWidth / 2;
 
-        let x = isP1 ? 75 : 1920 - 75 - this.cardWidth;
-        let y = 1080 - this.cardHeight - 25;
+        let x = isP1 ? 75 : 1920 - 75 - cardWidth;
+        let y = 1080 - cardHeight - 25;
         let hoverCard = null,
             selectedCard = null,
             newSelectedNum = null;
@@ -169,13 +165,13 @@ class Hand {
                     rect(
                         x + !isP1 * hoverXOffset * !bottomCard,
                         y - hoverYOffset,
-                        this.cardWidth - (topCard ? 0 : hoverXOffset),
-                        this.cardHeight + hoverYOffset
+                        cardWidth - (topCard ? 0 : hoverXOffset),
+                        cardHeight + hoverYOffset
                     )
                 );
-            const selected = isP1 && n === state.selectedCard;
+            const selected = this.game.selectionActive && isP1 && card === this.game.selectedCard;
 
-            card.rect = rect(x, y, this.cardWidth, this.cardHeight);
+            card.rect = rect(x, y, cardWidth, cardHeight);
 
             if (selected) {
                 card.rect.y -= selectedYOffset;
@@ -187,7 +183,7 @@ class Hand {
                 card.render();
             }
 
-            if (hover) state.cursorPointer = true;
+            if (hover && this.game.selectionActive) state.cursorPointer = true;
 
             card.setRotation(0);
             card.setScale(1);
@@ -200,19 +196,66 @@ class Hand {
                 card.setScale(1.1);
             }
 
-            const step = this.cardWidth - cardOverlap + (hover || selected ? hoverXOffset : 0);
+            const step = cardWidth - cardOverlap + (hover || selected ? hoverXOffset : 0);
             if (isP1) x += step;
             else x -= step;
 
-            if (state.wasClickThisFrame && isP1 && hover) newSelectedNum = n;
+            if (state.wasClickThisFrame && isP1 && hover) newSelectedNum = card;
         });
 
         if (newSelectedNum !== null) {
-            if (newSelectedNum === state.selectedCard) state.selectedCard = null;
-            else state.selectedCard = newSelectedNum;
+            if (newSelectedNum === this.game.selectedCard) this.game.selectedCard = null;
+            else this.game.selectedCard = newSelectedNum;
         }
         if (selectedCard) selectedCard.render();
         if (hoverCard) hoverCard.render();
+    }
+}
+
+class CardSelector {
+    constructor(game) {
+        this.game = game;
+        this.cards = [];
+
+        this.active = true;
+
+        this.cardWidth = 150;
+        this.cardHeight = this.cardWidth * 1.4;
+        this.cardGap = 15;
+
+        this.newSelection();
+    }
+
+    newSelection() {
+        this.cards = [];
+        for (let i = 0; i < 10; i++) this.addCard();
+    }
+
+    addCard() {
+        const card = new Card(rect(), P1);
+        this.cards.push(card);
+        card.animateScale = false;
+        card.setScale(0);
+        card.animateScale = true;
+    }
+
+    render() {
+        if (!this.active) return;
+
+        const width = this.cards.length * this.cardWidth + (this.cards.length - 1) * this.cardGap;
+        let x = (1920 - width) / 2;
+        let y = (1080 - this.cardHeight) / 2 - 50;
+
+        for (const card of this.cards) {
+            card.rect = rect(x, y, this.cardWidth, this.cardHeight);
+            const hover = collideRect(state.mouse, card.rect);
+            if (hover && state.wasClickThisFrame) this.game.chooseNewCard(card);
+            card.render();
+            card.setScale(hover ? 1.1 : 1);
+            card.setRotation(hover ? tween(2) * 2 : 0);
+            if (hover) state.cursorPointer = true;
+            x += this.cardWidth + this.cardGap;
+        }
     }
 }
 
@@ -225,7 +268,8 @@ class Grid {
     TILE_WIDTH = this.RECT.w / this.WIDTH;
     TILE_HEIGHT = this.RECT.h / this.HEIGHT;
 
-    constructor() {
+    constructor(game) {
+        this.game = game;
         this.tiles = [];
         for (let x = 0; x < this.WIDTH; x++) {
             this.tiles.push([]);
@@ -254,15 +298,17 @@ class Grid {
                 const hover = collideRect(state.mouse, tile.rect);
                 if (hover) hoverTile = [x, y];
                 tile.setScale(1);
+
+                if (hover && this.game.selectedCard && state.wasClickThisFrame) this.game.playCard(x, y);
             });
         });
 
         const hovers = [];
-        if (hoverTile && state.selectedCard !== null) {
+        if (hoverTile && this.game.selectedCard !== null) {
             state.cursorPointer = true;
             for (let dx = 0; dx < 5; dx++) {
                 for (let dy = 0; dy < 5; dy++) {
-                    if (state.selectedBombShape[dx][dy]) {
+                    if (this.game.selectedBombShape[dx][dy]) {
                         hovers.push([hoverTile[0] + dx - 2, hoverTile[1] + dy - 2]);
                     }
                 }
@@ -275,6 +321,122 @@ class Grid {
     }
 }
 
+class Game {
+    constructor() {
+        this.grid = new Grid(this);
+        this.p1Hand = new Hand(this, P1);
+        this.p2Hand = new Hand(this, P2);
+        this.cardSelector = new CardSelector(this);
+
+        this.selectedBombShape = [
+            [0, 0, 1, 0, 0],
+            [0, 1, 1, 1, 0],
+            [1, 1, 1, 1, 1],
+            [0, 1, 1, 1, 0],
+            [0, 0, 1, 0, 0],
+        ];
+        this.selectionActive = false;
+
+        this.selectedCard = null;
+
+        state.canvas = document.getElementById("root");
+        /** @type {CanvasRenderingContext2D} */
+        state.ctx = state.canvas.getContext("2d");
+
+        this.startTime = Date.now();
+        this.lastFrame = this.startTime;
+        this.dt = 0;
+        this.setupListeners();
+    }
+
+    setupListeners() {
+        document.addEventListener("mousemove", (e) => {
+            const { xo, yo, scale } = getViewport();
+            state.mouse.x = (e.clientX - xo) / scale;
+            state.mouse.y = (e.clientY - yo) / scale;
+        });
+        document.addEventListener("mousedown", (e) => {
+            if (e.button === 0) {
+                state.mouse.down = true;
+                state.wasClickThisFrame = true;
+            }
+        });
+        document.addEventListener("mouseup", (e) => {
+            if (e.button === 0) state.mouse.down = false;
+        });
+
+        const ro = new ResizeObserver(() => {
+            const { width, height } = state.canvas.getBoundingClientRect();
+            state.canvas.width = width;
+            state.canvas.height = height;
+        });
+        ro.observe(state.canvas);
+    }
+
+    playCard(card, x, y) {
+        if (!this.selectedCard) return;
+        state.wasClickThisFrame = false;
+        // TODO: This
+        this.p1Hand.cards = this.p1Hand.cards.filter((x) => x !== this.selectedCard);
+        this.selectedCard = null;
+        this.selectionActive = false;
+        this.cardSelector.active = true;
+    }
+
+    chooseNewCard(card) {
+        state.wasClickThisFrame = false;
+        // TODO: This
+        this.p1Hand.cards.push(card);
+        this.cardSelector.active = false;
+        this.selectedCard = null;
+        this.cardSelector.newSelection();
+        this.selectionActive = true;
+    }
+
+    updateTiming() {
+        // Timing code
+        const now = Date.now();
+        state.animation = (now - this.startTime) / 1000;
+        this.dt = (now - this.lastFrame) / 1000;
+        this.lastFrame = now;
+    }
+
+    render() {
+        const renderStats = (side) => {
+            const paneRect = rect(side ? 1920 - 250 : 50, 75, 200, 1080 - 450);
+            drawRect(paneRect, "#ff0");
+        };
+
+        state.cursorPointer = false;
+
+        state.ctx.fillStyle = "#000";
+        state.ctx.fillRect(0, 0, state.canvas.width, state.canvas.height);
+        drawRect(rect(0, 0, 1920, 1080), "#420");
+
+        this.grid.render();
+
+        renderStats(0);
+        renderStats(1);
+
+        this.p1Hand.render();
+        this.p2Hand.render();
+
+        this.cardSelector.render();
+
+        state.canvas.style.cursor = state.cursorPointer ? "pointer" : "default";
+
+        state.ctx.fillStyle = "#fff";
+        state.ctx.fillText(`${(1 / this.dt).toFixed(2)} FPS`, 10, 10);
+
+        state.wasClickThisFrame = false;
+        requestAnimationFrame(() => this.render());
+    }
+
+    start() {
+        this.render();
+    }
+}
+
 const cardBackRed = asset("cardBackRed.png");
 const cardBackBlue = asset("cardBackBlue.png");
 const cardBackGreen = asset("cardBackGreen.png");
@@ -283,74 +445,6 @@ const greyTile = asset("greyTile.png");
 const blueTile = asset("blueTile.png");
 
 const main = async () => {
-    state.grid = new Grid();
-    state.p1Hand = new Hand(P1);
-    state.p2Hand = new Hand(P2);
-
-    state.canvas = document.getElementById("root");
-    /** @type {CanvasRenderingContext2D} */
-    state.ctx = state.canvas.getContext("2d");
-
-    const start = Date.now();
-
-    document.addEventListener("mousemove", (e) => {
-        const { xo, yo, scale } = getViewport();
-        state.mouse.x = (e.clientX - xo) / scale;
-        state.mouse.y = (e.clientY - yo) / scale;
-    });
-    document.addEventListener("mousedown", (e) => {
-        if (e.button === 0) {
-            state.mouse.down = true;
-            state.wasClickThisFrame = true;
-        }
-    });
-    document.addEventListener("mouseup", (e) => {
-        if (e.button === 0) state.mouse.down = false;
-    });
-
-    const ro = new ResizeObserver(() => {
-        const { width, height } = state.canvas.getBoundingClientRect();
-        state.canvas.width = width;
-        state.canvas.height = height;
-    });
-    ro.observe(state.canvas);
-
-    const renderStats = (side) => {
-        const paneRect = rect(side ? 1920 - 250 : 50, 75, 200, 1080 - 450);
-        drawRect(paneRect, "#ff0");
-    };
-
-    let lastFrame = Date.now();
-    const render = () => {
-        // Timing code
-        const now = Date.now();
-        state.animation = (now - start) / 1000;
-        dt = (now - lastFrame) / 1000;
-        lastFrame = now;
-
-        state.cursorPointer = false;
-
-        state.ctx.fillStyle = "#000";
-        state.ctx.fillRect(0, 0, state.canvas.width, state.canvas.height);
-        drawRect(rect(0, 0, 1920, 1080), "#420");
-
-        state.grid.render();
-
-        renderStats(0);
-        renderStats(1);
-
-        state.p1Hand.render();
-        state.p2Hand.render();
-
-        state.canvas.style.cursor = state.cursorPointer ? "pointer" : "default";
-
-        state.ctx.fillStyle = "#fff";
-        state.ctx.fillText(`${(1 / dt).toFixed(2)} FPS`, 10, 10);
-
-        state.wasClickThisFrame = false;
-        requestAnimationFrame(render);
-    };
-
-    requestAnimationFrame(render);
+    new Game().start();
 };
 main();
