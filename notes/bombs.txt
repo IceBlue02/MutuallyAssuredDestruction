@@ -75,7 +75,7 @@ X---X
 X---X
 XXXXX
 X---X
-X---X
+X---X (13)
 
 Rarity: Common
 
@@ -87,10 +87,56 @@ XXXX-
 XXXX-
 XXXX-
 X----
-X----
+X---- (14)
 
 Rarity: Average
 
 Not sure why you'd make a bomb like this, but there you go.
 
-9. 
+9. Cherry
+
+--X--
+--X--
+--X--
+XX-XX
+XX-XX (11)
+
+Yep, it's a pair of Cherries. 
+
+Rarity: Super Rare
+
+10. e
+
+XXXXX
+X---X
+XXXXX
+X----
+XXXXX (18)
+
+2.71828182845904523536028747135
+
+Rarity: Rare
+
+11. A-Bomb
+
+--X--
+-X-X-
+-XXX-
+X---X 
+X---X 
+
+Rarity: Common
+
+I know I'll be A-O, A-O-K.
+
+12. ENGLAND
+
+--X--
+--X--
+XXXXX
+--X--
+--X-- (9)
+
+RULE BRITANNIA, BRITANNIA RULES THE WAVES
+
+Rarity: Common
