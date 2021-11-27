@@ -1,4 +1,3 @@
-from backend.master import building, state
 from enum import IntEnum
 import random
 
@@ -8,11 +7,11 @@ class Tile:
         self.state = state
         self.building = building
 
-    def get_building():
-        return building
+    def get_building(self):
+        return self.building
     
-    def get_state():
-        return state
+    def get_state(self):
+        return self.state
 
     def set_building(self, building):
         self.building = building
@@ -21,7 +20,7 @@ class Tile:
         self.state = state
 
 class Board:
-    def __init__(self, board):
+    def __init__(self):
         self.board = [15][30]
         self.board.fill_board()
 
@@ -232,8 +231,8 @@ class Game():
         self.player = 1
         self.red_hand =[]
         self.blue_hand = []
-        self.red_hand_size = Board.get_silo_red()
-        self.blue_hand_size = Board.get_silo_blue()
+        self.red_hand_size = Board.get_silo(1)
+        self.blue_hand_size = Board.get_silo(-1)
         self.setup = 0
         self.game_state = 1
         self.board_width = 30
