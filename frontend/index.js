@@ -117,13 +117,13 @@ class Tile extends Entity {
     constructor(rect, type) {
         super(rect);
         this.animateScale = true;
-        this.image = type === RED ? redTile : blueTile;
+        this.image = type === RED ? redTile : type === BLUE ? blueTile : greyTile;
     }
 }
 class Card extends Entity {
     constructor(rect, player) {
         super(rect);
-        const rand = Math.random()
+        const rand = Math.random();
         this.image = rand > 0.66 ? cardBackRed : rand > 0.33 ? cardBackBlue : cardBackGreen;
         this.animatePos = true;
         this.animateScale = true;
@@ -139,18 +139,19 @@ class Hand {
         this.cardWidth = this.large ? 200 : 100;
 
         this.cardHeight = this.cardWidth * 1.4;
-        this.cardOverlap = this.cardWidth / 2;
-        this.hoverXOffset = this.cardOverlap / 2;
-        this.hoverYOffset = this.cardOverlap * 0.4;
-        this.selectedYOffset = this.cardOverlap;
 
-        for (let i = 0; i < 5; i++) this.addCard();
+        for (let i = 0; i < 10; i++) this.addCard();
     }
     addCard() {
         this.cards.push(new Card(rect(), this.player));
     }
     render() {
         const isP1 = this.player === P1;
+
+        const cardOverlap = this.cardWidth / ((this.cards.length + 5) / this.cards.length);
+        const hoverXOffset = cardOverlap / 2;
+        const hoverYOffset = this.cardWidth * 0.2;
+        const selectedYOffset = this.cardWidth / 2;
 
         let x = isP1 ? 75 : 1920 - 75 - this.cardWidth;
         let y = 1080 - this.cardHeight - 25;
@@ -166,10 +167,10 @@ class Hand {
                 collideRect(
                     state.mouse,
                     rect(
-                        x + !isP1 * this.hoverXOffset * !bottomCard,
-                        y - this.hoverYOffset,
-                        this.cardWidth - (topCard ? 0 : this.hoverXOffset),
-                        this.cardHeight + this.hoverYOffset
+                        x + !isP1 * hoverXOffset * !bottomCard,
+                        y - hoverYOffset,
+                        this.cardWidth - (topCard ? 0 : hoverXOffset),
+                        this.cardHeight + hoverYOffset
                     )
                 );
             const selected = isP1 && n === state.selectedCard;
@@ -177,10 +178,10 @@ class Hand {
             card.rect = rect(x, y, this.cardWidth, this.cardHeight);
 
             if (selected) {
-                card.rect.y -= this.selectedYOffset;
+                card.rect.y -= selectedYOffset;
                 selectedCard = card;
             } else if (hover) {
-                card.rect.y -= this.hoverYOffset;
+                card.rect.y -= hoverYOffset;
                 hoverCard = card;
             } else {
                 card.render();
@@ -199,7 +200,7 @@ class Hand {
                 card.setScale(1.1);
             }
 
-            const step = this.cardWidth - this.cardOverlap + (hover || selected ? this.hoverXOffset : 0);
+            const step = this.cardWidth - cardOverlap + (hover || selected ? hoverXOffset : 0);
             if (isP1) x += step;
             else x -= step;
 
@@ -229,6 +230,7 @@ class Grid {
         for (let x = 0; x < this.WIDTH; x++) {
             this.tiles.push([]);
             for (let y = 0; y < this.HEIGHT; y++) {
+                const rand = Math.random();
                 this.tiles[x].push(
                     new Tile(
                         rect(
@@ -237,7 +239,7 @@ class Grid {
                             this.TILE_WIDTH,
                             this.TILE_HEIGHT
                         ),
-                        y % 2 === x % 2 ? RED : BLUE
+                        rand > 0.66 ? RED : rand > 0.33 ? BLUE : GREY
                     )
                 );
             }
@@ -313,64 +315,25 @@ const main = async () => {
     });
     ro.observe(state.canvas);
 
-    const renderGrid = () => {
-        const gridRect = rect(300, 50, 1920 - 600, 1080 - 400);
-
-        const tileWidth = gridRect.w / state.grid.width;
-        const tileHeight = gridRect.h / state.grid.height;
-        let hoverTile = null;
-        const rects = [];
-        for (let y = 0; y < state.grid.height; y++) {
-            rects.push([]);
-            for (let x = 0; x < state.grid.width; x++) {
-                tile = y % 2 === x % 2 ? redTile : blueTile;
-                tileRect = rect(gridRect.x + x * tileWidth, gridRect.y + y * tileHeight, tileWidth, tileHeight);
-                const hover = collideRect(state.mouse, tileRect);
-                rects[y].push([tileRect, tile, hover]);
-                if (hover) hoverTile = [x, y];
-            }
-        }
-
-        const hovers = {};
-        if (hoverTile) {
-            state.cursorPointer = true;
-            for (let dx = 0; dx < 5; dx++) {
-                for (let dy = 0; dy < 5; dy++) {
-                    if (state.selectedBombShape[dx][dy]) {
-                        hovers[`${hoverTile[0] + dx - 2}-${hoverTile[1] + dy - 2}`] = true;
-                    }
-                }
-            }
-        }
-
-        rects.forEach((row, y) => {
-            row.forEach(([tileRect, tile], x) => {
-                if (hovers[`${x}-${y}`]) return;
-                drawImage(tileRect, tile);
-            });
-        });
-        rects.forEach((row, y) => {
-            row.forEach(([tileRect, tile], x) => {
-                if (!hovers[`${x}-${y}`]) return;
-                drawImage(tileRect, tile, /*tween() **/ 0, 0.75);
-            });
-        });
-    };
-
     const renderStats = (side) => {
         const paneRect = rect(side ? 1920 - 250 : 50, 75, 200, 1080 - 450);
         drawRect(paneRect, "#ff0");
     };
 
+    let lastFrame = Date.now();
     const render = () => {
-        state.animation = (Date.now() - start) / 1000;
+        // Timing code
+        const now = Date.now();
+        state.animation = (now - start) / 1000;
+        dt = (now - lastFrame) / 1000;
+        lastFrame = now;
+
         state.cursorPointer = false;
 
         state.ctx.fillStyle = "#000";
         state.ctx.fillRect(0, 0, state.canvas.width, state.canvas.height);
         drawRect(rect(0, 0, 1920, 1080), "#420");
 
-        // renderGrid();
         state.grid.render();
 
         renderStats(0);
@@ -380,6 +343,9 @@ const main = async () => {
         state.p2Hand.render();
 
         state.canvas.style.cursor = state.cursorPointer ? "pointer" : "default";
+
+        state.ctx.fillStyle = "#fff";
+        state.ctx.fillText(`${(1 / dt).toFixed(2)} FPS`, 10, 10);
 
         state.wasClickThisFrame = false;
         requestAnimationFrame(render);
