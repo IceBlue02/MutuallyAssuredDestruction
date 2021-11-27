@@ -243,7 +243,8 @@ class Game():
         self.game_state = 1
         self.board_width = 30
         self.board_height = 15
-
+        self.game_board = Board()
+        
         self.playersingame = 0
         self.turn_change_event = threading.Event()
         self.game_start_event = threading.Event()
@@ -262,24 +263,25 @@ class Game():
         self.game_start_event.wait()
         return {"ready": False}
 
-    def placeFactories(turn, data):
+    def placeFactories(self,turn, data):
+
         for i in range (0,3):
             x = data["factories"][i][0]
             y = data["factories"][i][1]
-            if(Board[x][y].state != turn):
+            if(self.game_board[x][y].state != turn):
                 return False
             else:
-                Board[x][y].building = 1
+                self.game_board[x][y].building = 1
 
 
-    def placeSilo(turn, data):
+    def placeSilo(self,turn, data):
         for i in range (0,3):
             x = data["silo"][i][0]
             y = data["silo"][i][1]
-            if(Board[x][y].state != turn):
+            if(self.game_board[x][y].state != turn):
                 return False
             else:
-                Board[x][y].building = 2   
+                self.game_board[x][y].building = 2   
 
 
     def get_hand_options(self, factories):
@@ -292,17 +294,17 @@ class Game():
     def get_card(self):
         return random.choice(self.deck)
         
+    def get_hand_size(self):
+        return self.game_board.get_silo(self.player)
 
     def gameOver(self):
-        board = Board()
-        board = board.get_Board(self.player)
         red_tiles = 0
         blue_tiles = 0
         for i in range(0, self.board_height):
             for j in range(0, self.board_width):
-                if board[i][j].get_state() == -1:
+                if self.game_board[i][j].get_state() == -1:
                     blue_tiles += 1
-                if board[i][j].get_state() == 1:
+                if self.game_board[i][j].get_state() == 1:
                     red_tiles += 1
         if red_tiles == 0:
             self.game_state = 0
@@ -315,10 +317,9 @@ class Game():
         card_holder.initaliseBombs()
         for i in range(0,card_holder.length()):
             for _ in range(0,card_holder[i].rarity):
-                deck.append(card_holder[i])
+                self.deck.append(card_holder[i])
    
     def main(self):
-        deck = [None]
         game_board = Board()
         Game.deck_builder(self.deck)
         #1 = red
@@ -336,25 +337,26 @@ class Game():
                 self.setup = 1
         #start the game 
         while self.game_state == 1:
-            game_board.get_board(player)
-            game_board.get_hand_options(game_board.get_factory(player))
-            if player ==1:
+            self.game_board.get_board(self.player)
+            Game.get_hand_size(self.game_board)
+            self.game_board.get_hand_options(self.game_board.get_factory(player))
+            if self.player ==1:
                 self.red_hand.append(data["chosen"][0])
-            if player ==-1:
+            if self.player ==-1:
                 self.blue_hand.append(data["chosen"][0])
 
             selected_card = data["selected"][0]
-            if player ==1:
+            if self.player ==1:
                 selected_card = self.red_hand.pop(selected_card)
-            if player ==-1:
+            if self.player ==-1:
                 selected_card = self.blue_hand.pop(selected_card)
             #need to implement placing of bomb 
             x = data["coordinates"][0]
             y = data["coordinates"][1]
-            game_board.apply_bomb(self, selected_card.shape, x, y)
+            self.game_board.apply_bomb(self, selected_card.shape, x, y)
             self.gameOver()
-            game_board.get_board(player)
-            player = player*(-1)
+            self.game_board.get_board(self.player)
+            self.player = self.player*(-1)
 
     def swap_turns(self):
         self.player = self.player * -1
