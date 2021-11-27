@@ -1,12 +1,11 @@
-from enum import Enum
-import enum
+from enum import IntEnum
 
-class state(Emun):
+class state(IntEnum):
     blue = -1
     grey = 0
     red = 1
 
-class building(Enum):
+class building(IntEnum):
     empty = 0
     factory = 1
     silo = 2
