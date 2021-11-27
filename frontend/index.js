@@ -6,6 +6,50 @@ const BLUE = -1,
 const EMPTY = 1,
     SILO = 1,
     FACTORY = 2;
+const BOMB_SQUARE = 1,
+    BOMB_CIRCLE = 2,
+    BOMB_DIAMOND = 3,
+    BOMB_TARGET = 4,
+    BOMB_DOT_DOT_DOT = 5,
+    BOMB_X = 6,
+    BOMB_H_BOMB = 7,
+    BOMB_P_BOMB = 8,
+    BOMB_CHERRY = 9,
+    BOMB_E = 10,
+    BOMB_A_BOMB = 11,
+    BOMB_ENGLAND = 12;
+
+const SHAPES = {
+    [BOMB_SQUARE]: [
+        [0, 0, 0, 0, 0],
+        [0, 1, 1, 1, 1],
+        [0, 1, 1, 1, 1],
+        [0, 1, 1, 1, 1],
+        [0, 1, 1, 1, 1],
+    ],
+    [BOMB_CIRCLE]: [
+        [0, 1, 1, 1, 0],
+        [1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1],
+        [0, 1, 1, 1, 0],
+    ],
+    [BOMB_DIAMOND]: [
+        [0, 0, 1, 0, 0],
+        [0, 1, 1, 1, 0],
+        [1, 1, 1, 1, 1],
+        [0, 1, 1, 1, 0],
+        [0, 0, 1, 0, 0],
+    ],
+    [BOMB_TARGET]: [
+        [1, 1, 1, 1, 1],
+        [1, 0, 0, 0, 1],
+        [1, 0, 1, 0, 1],
+        [1, 0, 0, 0, 1],
+        [1, 1, 1, 1, 1],
+    ],
+}
+
 const state = {
     mouse: {
         x: 0,
@@ -19,6 +63,31 @@ const state = {
     canvas: null,
     /** @type {CanvasRenderingContext2D} */
     ctx: null,
+};
+
+const HOST = "http://127.0.0.1:3000";
+
+const randomCardType = () => {
+    const rand = Math.random();
+    if (rand < 0.25) return BOMB_SQUARE;
+    if (rand < 0.5) return BOMB_CIRCLE;
+    if (rand < 0.75) return BOMB_DIAMOND;
+    return BOMB_TARGET;
+};
+
+const delay = async (miliseconds) => {
+    return new Promise((resolve) => setTimeout(() => resolve(), miliseconds));
+};
+
+const post = async (endpoint, body = null) => {
+    return [1, 2, 3, 4, 2];
+    return await fetch(`${HOST}/${endpoint}`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+    }).then((x) => x.json());
 };
 
 const asset = (src) => {
@@ -58,6 +127,10 @@ const drawImage = ({ x, y, w, h }, image, rotation, imageScale) => {
     }
     state.ctx.drawImage(image, x, y, w, h);
     state.ctx.restore();
+};
+const drawText = (x, y, text, size, colour) => {
+    const { xo, yo, scale } = getViewport();
+    state.ctx.drawText((x + xo) * scale, (y + yo) * scale, text, size * scale, colour)
 };
 const collideRect = ({ x, y }, { x: rx, y: ry, w: rw, h: rh }) => {
     if (x < rx || y < ry || x >= rx + rw || y >= ry + rh) return false;
@@ -114,10 +187,11 @@ class Tile extends Entity {
 }
 
 class Card extends Entity {
-    constructor(rect, player) {
+    constructor(rect, bombId) {
         super(rect);
-        const rand = Math.random();
-        this.image = rand > 0.66 ? cardBackRed : rand > 0.33 ? cardBackBlue : cardBackGreen;
+        bombId = randomCardType();
+        this.bombId = bombId;
+        this.image = bombId === -1 ? cardBackRed : CARDS[bombId];
         this.animatePos = true;
         this.animateScale = true;
     }
@@ -133,10 +207,10 @@ class Hand {
 
         this.selectedCard = null;
 
-        for (let i = 0; i < 10; i++) this.addCard();
+        for (let i = 0; i < 6; i++) this.addCard(player === P1 ? 0 : -1);
     }
-    addCard() {
-        this.cards.push(new Card(rect(), this.player));
+    addCard(type) {
+        this.cards.push(new Card(rect(), type));
     }
     render() {
         const cardWidth = this.large ? (this.game.selectionActive ? 200 : 150) : 100;
@@ -153,7 +227,7 @@ class Hand {
         let y = 1080 - cardHeight - 25;
         let hoverCard = null,
             selectedCard = null,
-            newSelectedNum = null;
+            newSelectedCard = null;
         this.cards.forEach((card, n) => {
             const topCard = !isP1 ? n === 0 : n === this.cards.length - 1;
             const bottomCard = isP1 ? n === 0 : n === this.cards.length - 1;
@@ -200,12 +274,12 @@ class Hand {
             if (isP1) x += step;
             else x -= step;
 
-            if (state.wasClickThisFrame && isP1 && hover) newSelectedNum = card;
+            if (this.game.selectionActive && state.wasClickThisFrame && isP1 && hover) newSelectedCard = card;
         });
 
-        if (newSelectedNum !== null) {
-            if (newSelectedNum === this.game.selectedCard) this.game.selectedCard = null;
-            else this.game.selectedCard = newSelectedNum;
+        if (newSelectedCard !== null) {
+            if (newSelectedCard === this.game.selectedCard) this.game.selectCard(null);
+            else this.game.selectCard(newSelectedCard);
         }
         if (selectedCard) selectedCard.render();
         if (hoverCard) hoverCard.render();
@@ -218,21 +292,15 @@ class CardSelector {
         this.cards = [];
 
         this.active = true;
-
-        this.cardWidth = 150;
-        this.cardHeight = this.cardWidth * 1.4;
-        this.cardGap = 15;
-
-        this.newSelection();
     }
 
-    newSelection() {
+    newSelection(choices) {
         this.cards = [];
-        for (let i = 0; i < 10; i++) this.addCard();
+        choices.forEach((x) => this.addCard(x));
     }
 
-    addCard() {
-        const card = new Card(rect(), P1);
+    addCard(type) {
+        const card = new Card(rect(), type);
         this.cards.push(card);
         card.animateScale = false;
         card.setScale(0);
@@ -242,19 +310,23 @@ class CardSelector {
     render() {
         if (!this.active) return;
 
-        const width = this.cards.length * this.cardWidth + (this.cards.length - 1) * this.cardGap;
+        const cardWidth = this.cards.length > 5 ? 150 : 200;
+        const cardHeight = cardWidth * 1.4;
+        const cardGap = cardWidth * 0.1;
+
+        const width = this.cards.length * cardWidth + (this.cards.length - 1) * cardGap;
         let x = (1920 - width) / 2;
-        let y = (1080 - this.cardHeight) / 2 - 50;
+        let y = (1080 - cardHeight) / 2 - 50;
 
         for (const card of this.cards) {
-            card.rect = rect(x, y, this.cardWidth, this.cardHeight);
+            card.rect = rect(x, y, cardWidth, cardHeight);
             const hover = collideRect(state.mouse, card.rect);
             if (hover && state.wasClickThisFrame) this.game.chooseNewCard(card);
             card.render();
             card.setScale(hover ? 1.1 : 1);
             card.setRotation(hover ? tween(2) * 2 : 0);
             if (hover) state.cursorPointer = true;
-            x += this.cardWidth + this.cardGap;
+            x += cardWidth + cardGap;
         }
     }
 }
@@ -324,18 +396,13 @@ class Grid {
 class Game {
     constructor() {
         this.grid = new Grid(this);
+        this.player = P1;
         this.p1Hand = new Hand(this, P1);
         this.p2Hand = new Hand(this, P2);
         this.cardSelector = new CardSelector(this);
 
-        this.selectedBombShape = [
-            [0, 0, 1, 0, 0],
-            [0, 1, 1, 1, 0],
-            [1, 1, 1, 1, 1],
-            [0, 1, 1, 1, 0],
-            [0, 0, 1, 0, 0],
-        ];
-        this.selectionActive = false;
+        this.selectedBombShape = null;
+        this.selectionActive = true;
 
         this.selectedCard = null;
 
@@ -373,24 +440,46 @@ class Game {
         ro.observe(state.canvas);
     }
 
-    playCard(card, x, y) {
+    async playCard(x, y) {
         if (!this.selectedCard) return;
         state.wasClickThisFrame = false;
-        // TODO: This
+        await post("place_card", {
+            player: this.player,
+            coords: [x, y],
+            bombId: this.selectedCard.bombId,
+        });
         this.p1Hand.cards = this.p1Hand.cards.filter((x) => x !== this.selectedCard);
         this.selectedCard = null;
         this.selectionActive = false;
+
+        const gameState = await post("get_game_state", { player: this.player });
+
+        // await delay(500);
+
+        const handOptions = await post("get_hand_options");
+        this.cardSelector.newSelection(handOptions);
+
         this.cardSelector.active = true;
     }
 
-    chooseNewCard(card) {
+    async chooseNewCard(card) {
         state.wasClickThisFrame = false;
-        // TODO: This
+
+        await post("get_hand_options", {
+            player: this.player,
+            bombId: card.bombId,
+        });
+
         this.p1Hand.cards.push(card);
         this.cardSelector.active = false;
         this.selectedCard = null;
-        this.cardSelector.newSelection();
         this.selectionActive = true;
+    }
+
+    selectCard(card) {
+        this.selectedCard = card;
+        if (card)
+            this.selectedBombShape = SHAPES[card.bombId];
     }
 
     updateTiming() {
@@ -443,6 +532,16 @@ const cardBackGreen = asset("cardBackGreen.png");
 const redTile = asset("redTile.png");
 const greyTile = asset("greyTile.png");
 const blueTile = asset("blueTile.png");
+
+const CARDS = {
+    [BOMB_SQUARE]: asset("cards/1.png"),
+    [BOMB_CIRCLE]: asset("cards/2.png"),
+    [BOMB_DIAMOND]: asset("cards/3.png"),
+    [BOMB_TARGET]: asset("cards/4.png"),
+    // BOMB_DOT_DOT_DOT: asset("dotdotdot.png"),
+    // BOMB_X: asset("x.png"),
+    // BOMB_H_BOMB: asset("h.png"),
+};
 
 const main = async () => {
     new Game().start();
