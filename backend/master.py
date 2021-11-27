@@ -77,8 +77,8 @@ class Board:
         for i in range(0, len(bomb_template)):
             for j in range(0, len(bomb_template[i])):
                 if bomb_template[i][j] == 1:
-                    x_pos = x + (i - 2)
-                    y_pos = y + (j - 2)
+                    x_pos = x + (j - 2)
+                    y_pos = y + (i - 2)
                     if x_pos < 0 | y_pos < 0 | x_pos > 14| y_pos > 29:
                         continue
                     else:
