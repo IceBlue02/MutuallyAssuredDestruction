@@ -41,11 +41,11 @@ def await_turn():
 
 @app.route("/get_cards", methods=["GET"])
 def get_bombs():
-    return game.get_cards()
+    return jsonify(game.get_cards())
 
 @app.route("/connect", methods=["POST"])
 def on_connect():
-    return game.on_game_entry()
+    return jsonify(game.on_game_entry())
 
 @app.route("/await_start", methods=["GET"])
 def await_start():
