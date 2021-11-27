@@ -43,7 +43,7 @@ class Cards():
             [1,1,1,1,0],
             [1,1,1,1,0],
             [1,1,1,1,0],
-            [1,1,1,1,0],
+            [0,0,0,0,0],
         ])
         self.bombs.append(square)
 
@@ -189,14 +189,17 @@ class Game():
 
     def get_card(self):
         return random.choice(self.deck)
+        
 
+    def gameOver():
+        return 0
 
     def deck_builder(self,deck):
         card_holder = Cards()
         card_holder.initaliseBombs()
         for i in range(0,card_holder.length()):
             for _ in range(0,card_holder[i].rarity):
-                deck.apped(card_holder[i])
+                deck.append(card_holder[i])
    
     def main(self):
         deck = [None]
@@ -217,7 +220,7 @@ class Game():
         #start the game 
         while self.game_state == 1:
             Board.get_board(player)
-            Board.get_hand_options(get_factory(player))
+            Board.get_hand_options(Board.get_factory(player))
             if player ==1:
                 self.red_hand.append(data["chosen"][0])
             if player ==-1:
