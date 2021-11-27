@@ -242,7 +242,7 @@ class Game():
         self.red_hand_size = self.game_board.get_silo(1)
         self.blue_hand_size = self.game_board.get_silo(-1)
         self.setup = 0
-        self.game_state = 1
+        self.win = 1
         self.board_width = 30
         self.board_height = 15
         
@@ -301,11 +301,23 @@ class Game():
             else:
                 self.game_board[x][y].building = 2   
 
+    def deploy_bomb(self, bomb_id):
+        if self.player == -1:
+            for i in range(0, len(self.blue_hand)):
+                if self.blue_hand[i].id == bomb_id:
+                    return True
+            return False
+        if self.player == 1:
+            for i in range(0, len(self.red_hand)):
+                if self.red_hand[i].id == bomb_id:
+                    return True
+            return False
 
     def get_hand_options(self, factories):
         hand_options = [None]
         for i in range(0, factories):
-            hand_options.append(self.get_card())
+            card = self.get_card()
+            hand_options.append(card.id)
         return hand_options
 
 
@@ -315,7 +327,7 @@ class Game():
     def get_hand_size(self):
         return self.game_board.get_silo(self.player)
 
-    def gameOver(self):
+    def game_over(self):
         red_tiles = 0
         blue_tiles = 0
         for i in range(0, self.board_height):
@@ -325,10 +337,17 @@ class Game():
                 if self.game_board[i][j].get_state() == 1:
                     red_tiles += 1
         if red_tiles == 0:
-            self.game_state = 0
+            self.win= 0
         if blue_tiles ==0:
-            self.game_state = 0
+            self.win = 0
 
+    def get_game_state(self):
+        if self.player == -1:
+            return self.game_board.get_board(self.player), self.blue_hand
+        if self.player == 1:
+            return self.game_board.get_board(self.player), self.red_hand
+        else: 
+            print("Error")
 
     def deck_builder(self,deck):
         card_holder = Cards()
