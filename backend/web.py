@@ -54,7 +54,7 @@ def await_start():
             game.await_game_start()
             yield "data: start\n\n"
 
-    return Response(jsonify(waitforstart()), mimetype="text/event-stream")
+    return Response(waitforstart(), mimetype="text/event-stream")
 
 
 if __name__ == '__main__':
