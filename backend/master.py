@@ -1,5 +1,6 @@
 from enum import IntEnum
 import random
+import threading
 
 
 class Tile:
@@ -243,6 +244,24 @@ class Game():
         self.board_width = 30
         self.board_height = 15
 
+        self.playersingame = 0
+        self.turn_change_event = threading.Event()
+        self.game_start_event = threading.Event()
+
+    def on_game_entry(self):
+        self.playersingame += 1
+        if self.playersingame == 1:
+            return {"player": 1, "ready": False}
+        else:
+            self.game_start_event.set()
+            self.game_start_event.clear()
+            return {"player": -1, "ready": True}
+
+    def await_game_start(self):
+        print("Waiting for game start")
+        self.game_start_event.wait()
+        return {"ready": False}
+
     def placeFactories(turn, data):
         for i in range (0,3):
             x = data["factories"][i][0]
@@ -336,5 +355,16 @@ class Game():
             self.gameOver()
             game_board.get_board(player)
             player = player*(-1)
+
+    def swap_turns(self):
+        self.player = self.player * -1
+        self.turn_change_event.set()
+        print("Turn change")
+        self.turn_change_event.clear()
+
+    def await_turn_change(self):
+        print("Waiting for turn change")
+        self.turn_change_event.wait()
+        return self.player
 
 #need to write a function to get card.
