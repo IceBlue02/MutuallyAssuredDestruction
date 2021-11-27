@@ -57,7 +57,6 @@ X-X-X (13)
 
 Rarity: Common
 
-...................
 
 6. X
 
@@ -115,11 +114,9 @@ XXXXX
 X----
 XXXXX (18)
 
-Rarity: Rare
-
 2.71828182845904523536028747135
 
-
+Rarity: Rare
 
 11. A-Bomb
 
