@@ -1,5 +1,5 @@
-const P1 = 0,
-    P2 = 1;
+const P1 = 1,
+    P2 = 2;
 const BLUE = -1,
     GREY = 0,
     RED = 1;
@@ -48,7 +48,63 @@ const SHAPES = {
         [1, 0, 0, 0, 1],
         [1, 1, 1, 1, 1],
     ],
-}
+    [BOMB_DOT_DOT_DOT]: [
+        [1, 0, 1, 0, 1],
+        [0, 1, 0, 1, 0],
+        [1, 0, 1, 0, 1],
+        [0, 1, 0, 1, 0],
+        [1, 0, 1, 0, 1],
+    ],
+    [BOMB_X]: [
+        [1, 0, 0, 0, 1],
+        [0, 1, 0, 1, 0],
+        [0, 0, 1, 0, 0],
+        [0, 1, 0, 1, 0],
+        [1, 0, 0, 0, 1],
+    ],
+    [BOMB_H_BOMB]: [
+        [1, 1, 1, 1, 1],
+        [0, 0, 1, 0, 0],
+        [0, 0, 1, 0, 0],
+        [0, 0, 1, 0, 0],
+        [1, 1, 1, 1, 1],
+    ],
+    [BOMB_P_BOMB]: [
+        [1, 1, 1, 1, 1],
+        [1, 1, 1, 0, 0],
+        [1, 1, 1, 0, 0],
+        [1, 1, 1, 0, 0],
+        [0, 0, 0, 0, 0],
+    ],
+    [BOMB_CHERRY]: [
+        [0, 0, 0, 1, 1],
+        [0, 0, 0, 1, 1],
+        [1, 1, 1, 0, 0],
+        [0, 0, 0, 1, 1],
+        [0, 0, 0, 1, 1],
+    ],
+    [BOMB_E]: [
+        [1, 1, 1, 1, 1],
+        [1, 0, 1, 0, 1],
+        [1, 0, 1, 0, 1],
+        [1, 0, 1, 0, 1],
+        [1, 1, 1, 0, 1],
+    ],
+    [BOMB_A_BOMB]: [
+        [0, 0, 0, 1, 1],
+        [0, 1, 1, 0, 0],
+        [1, 0, 1, 0, 0],
+        [0, 1, 1, 0, 0],
+        [0, 0, 0, 1, 1],
+    ],
+    [BOMB_ENGLAND]: [
+        [0, 0, 1, 0, 0],
+        [0, 0, 1, 0, 0],
+        [1, 1, 1, 1, 1],
+        [0, 0, 1, 0, 0],
+        [0, 0, 1, 0, 0],
+    ],
+};
 
 const state = {
     mouse: {
@@ -65,14 +121,11 @@ const state = {
     ctx: null,
 };
 
-const HOST = "http://127.0.0.1:3000";
+const HOST = "http://127.0.0.1:5000";
 
 const randomCardType = () => {
     const rand = Math.random();
-    if (rand < 0.25) return BOMB_SQUARE;
-    if (rand < 0.5) return BOMB_CIRCLE;
-    if (rand < 0.75) return BOMB_DIAMOND;
-    return BOMB_TARGET;
+    return Math.floor(rand * 9) + 1;
 };
 
 const delay = async (miliseconds) => {
@@ -80,7 +133,6 @@ const delay = async (miliseconds) => {
 };
 
 const post = async (endpoint, body = null) => {
-    return [1, 2, 3, 4, 2];
     return await fetch(`${HOST}/${endpoint}`, {
         method: "POST",
         headers: {
@@ -130,7 +182,7 @@ const drawImage = ({ x, y, w, h }, image, rotation, imageScale) => {
 };
 const drawText = (x, y, text, size, colour) => {
     const { xo, yo, scale } = getViewport();
-    state.ctx.drawText((x + xo) * scale, (y + yo) * scale, text, size * scale, colour)
+    state.ctx.drawText((x + xo) * scale, (y + yo) * scale, text, size * scale, colour);
 };
 const collideRect = ({ x, y }, { x: rx, y: ry, w: rw, h: rh }) => {
     if (x < rx || y < ry || x >= rx + rw || y >= ry + rh) return false;
@@ -207,7 +259,7 @@ class Hand {
 
         this.selectedCard = null;
 
-        for (let i = 0; i < 6; i++) this.addCard(player === P1 ? 0 : -1);
+        for (let i = 0; i < 50; i++) this.addCard(player === P1 ? 0 : -1);
     }
     addCard(type) {
         this.cards.push(new Card(rect(), type));
@@ -414,6 +466,8 @@ class Game {
         this.lastFrame = this.startTime;
         this.dt = 0;
         this.setupListeners();
+
+        this.newHand();
     }
 
     setupListeners() {
@@ -443,7 +497,7 @@ class Game {
     async playCard(x, y) {
         if (!this.selectedCard) return;
         state.wasClickThisFrame = false;
-        await post("place_card", {
+        await post("place_bomb", {
             player: this.player,
             coords: [x, y],
             bombId: this.selectedCard.bombId,
@@ -452,14 +506,17 @@ class Game {
         this.selectedCard = null;
         this.selectionActive = false;
 
-        const gameState = await post("get_game_state", { player: this.player });
+        // const gameState = await post("get_game_state", { player: this.player });
 
         // await delay(500);
+    }
 
-        const handOptions = await post("get_hand_options");
-        this.cardSelector.newSelection(handOptions);
-
-        this.cardSelector.active = true;
+    async newHand() {
+        const handOptions = await post("get_hand_options", { player: this.player });
+        if (handOptions && handOptions.length !== 0) {
+            this.cardSelector.newSelection(handOptions);
+            this.cardSelector.active = true;
+        }
     }
 
     async chooseNewCard(card) {
@@ -478,8 +535,7 @@ class Game {
 
     selectCard(card) {
         this.selectedCard = card;
-        if (card)
-            this.selectedBombShape = SHAPES[card.bombId];
+        if (card) this.selectedBombShape = SHAPES[card.bombId];
     }
 
     updateTiming() {
@@ -538,9 +594,11 @@ const CARDS = {
     [BOMB_CIRCLE]: asset("cards/2.png"),
     [BOMB_DIAMOND]: asset("cards/3.png"),
     [BOMB_TARGET]: asset("cards/4.png"),
-    // BOMB_DOT_DOT_DOT: asset("dotdotdot.png"),
-    // BOMB_X: asset("x.png"),
-    // BOMB_H_BOMB: asset("h.png"),
+    [BOMB_DOT_DOT_DOT]: asset("cards/5.png"),
+    [BOMB_X]: asset("cards/6.png"),
+    [BOMB_H_BOMB]: asset("cards/7.png"),
+    [BOMB_P_BOMB]: asset("cards/8.png"),
+    [BOMB_CHERRY]: asset("cards/9.png"),
 };
 
 const main = async () => {
