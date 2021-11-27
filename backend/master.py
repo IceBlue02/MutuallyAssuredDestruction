@@ -1,6 +1,6 @@
 from enum import IntEnum
 
-class state(IntEmun):
+class state(IntEnum):
     blue = -1
     grey = 0
     red = 1
