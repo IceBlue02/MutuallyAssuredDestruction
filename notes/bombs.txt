@@ -1,0 +1,96 @@
+
+
+1. Square 
+
+XXXX
+XXXX
+XXXX
+XXXX (16)
+
+Simple, but effective.
+
+Rarity: Avg
+
+2. Circle 
+
+-XXX-
+XXXXX
+XXXXX
+XXXXX
+-XXX-   (21)
+
+Rarity: Rare
+
+The circle of (no) life.
+
+3. Diamond
+
+--X--
+-XXX-
+XXXXX (13)
+-XXX-
+--X--
+
+Rarity: Common
+
+Diamonds are forever. So is the damage left by this.
+
+4. Target
+
+XXXXX
+X---X
+X-X-X
+X---X
+XXXXX (17)
+
+Rarity: Rare
+
+You can't miss.
+
+5. ...
+
+X-X-X
+-X-X-
+X-X-X
+-X-X-
+X-X-X (13)
+
+Rarity: Common
+
+...................
+
+6. X
+
+X---X
+-X-X-
+--X--
+-X-X-
+X---X (9)
+
+It marks the spot. And hits it.
+
+7. H-Bomb
+
+X---X
+X---X
+XXXXX
+X---X
+X---X
+
+Rarity: Common
+
+'Can you add the H-Bomb to the game?' 'Yeah sure I got you'
+
+8. P-Bomb
+
+XXXX-
+XXXX-
+XXXX-
+X----
+X----
+
+Rarity: Average
+
+Not sure why you'd make a bomb like this, but there you go.
+
+9. 
