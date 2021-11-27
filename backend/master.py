@@ -76,7 +76,12 @@ class Board:
         for i in range(0, len(bomb_template)):
             for j in range(0, len(bomb_template[i])):
                 if bomb_template[i][j] == 1:
-                    self.board[x + (i - 2)][y + (j - 2)].setState(0)
+                    x_pos = x + (i - 2)
+                    y_pos = y + (j - 2)
+                    if x_pos < 0 | y_pos < 0 | x_pos > 14| y_pos > 29:
+                        continue
+                    else:
+                        self.board[x_pos][y_pos].setState(0)
 
 class State(IntEnum):
     blue = -1
@@ -134,17 +139,17 @@ class Cards():
         )
         self.bombs.append(circle)
 
-        diamond = Bomb(3,"Bomb",self.rarity("common"), "Diamonds are forever. So is the damage left by this."[
-            [0,1,1,1,0,],
-            [1,1,1,1,1,],
-            [1,1,1,1,1,],
-            [1,1,1,1,1,],
-            [0,1,1,1,0,],
+        diamond = Bomb(3,"Bomb",self.rarity("common"), "Diamonds are forever. So is the damage left by this.", [
+            [0,1,1,1,0],
+            [1,1,1,1,1],
+            [1,1,1,1,1],
+            [1,1,1,1,1],
+            [0,1,1,1,0],
         ])
 
         self.bombs.append(diamond)
 
-        target= Bomb(4,"Target",self.rarity("rare"), "You can't miss.",[
+        target= Bomb(4,"Target",self.rarity("rare"), "You can't miss.", [
             [1,1,1,1,1],
             [1,0,0,0,1],
             [1,0,1,0,1],
@@ -187,7 +192,7 @@ class Cards():
             [1,0,0,0,0],
             [1,0,0,0,0],
         ])
-        self.bombs.append(P0)
+        self.bombs.append(PO)
 
         cherry = Bomb(9,"Cherry", self.rarity("super rare"), "Yep, it's a pair of Cherries. ", [ 
             [0,0,1,0,0],
@@ -207,7 +212,7 @@ class Cards():
         ])
         self.bombs.append(e)
 
-        A0 = Bomb(11,"A0",self.rarity("common"), "I know I'll be A0,O, A0,O0,K." [ 
+        A0 = Bomb(11,"A0",self.rarity("common"), "I know I'll be A0,O, A0,O0,K.", [ 
             [0,0,1,0,0],
             [0,1,0,1,0],
             [0,1,1,1,0],
@@ -295,6 +300,7 @@ class Game():
    
     def main(self):
         deck = [None]
+        game_board = Board()
         Game.deck_builder(self.deck)
         #1 = red
         # -1 = blue
@@ -311,21 +317,24 @@ class Game():
                 self.setup = 1
         #start the game 
         while self.game_state == 1:
-            Board.get_board(player)
-            Board.get_hand_options(Board.get_factory(player))
+            game_board.get_board(player)
+            game_board.get_hand_options(game_board.get_factory(player))
             if player ==1:
                 self.red_hand.append(data["chosen"][0])
             if player ==-1:
                 self.blue_hand.append(data["chosen"][0])
 
-            selected_card = data['selected'][0]
+            selected_card = data["selected"][0]
             if player ==1:
                 selected_card = self.red_hand.pop(selected_card)
             if player ==-1:
                 selected_card = self.blue_hand.pop(selected_card)
             #need to implement placing of bomb 
+            x = data["coordinates"][0]
+            y = data["coordinates"][1]
+            game_board.apply_bomb(self, selected_card.shape, x, y)
             self.gameOver()
-            Board.get_board(player)
+            game_board.get_board(player)
             player = player*(-1)
 
 #need to write a function to get card.
