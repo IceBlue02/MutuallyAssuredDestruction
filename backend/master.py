@@ -15,3 +15,20 @@ class bomb(IntEnum):
     A-Bomb = 1
     Tsar-Bomb = 2
     Proton-Bomb = 3
+
+class Tile:
+    def __init__(self, state, building):
+        self.state = state
+        self.building = building
+
+    def get_building():
+        return building
+
+    def get_state():
+        return state
+
+    def set_building(building):
+        self.building = building
+
+    def set_state(state):
+        self.state = state
