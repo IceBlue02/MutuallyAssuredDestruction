@@ -244,24 +244,24 @@ class Game():
         self.board_height = 15
         self.game_board = Board()
 
-    def placeFactories(turn, data):
+    def placeFactories(self,turn, data):
         for i in range (0,3):
             x = data["factories"][i][0]
             y = data["factories"][i][1]
-            if(Board[x][y].state != turn):
+            if(self.game_board[x][y].state != turn):
                 return False
             else:
-                Board[x][y].building = 1
+                self.game_board[x][y].building = 1
 
 
-    def placeSilo(turn, data):
+    def placeSilo(self,turn, data):
         for i in range (0,3):
             x = data["silo"][i][0]
             y = data["silo"][i][1]
-            if(Board[x][y].state != turn):
+            if(self.game_board[x][y].state != turn):
                 return False
             else:
-                Board[x][y].building = 2   
+                self.game_board[x][y].building = 2   
 
 
     def get_hand_options(self, factories):
@@ -278,15 +278,13 @@ class Game():
         return self.game_board.get_silo(self.player)
 
     def gameOver(self):
-        board = Board()
-        board = board.get_Board(self.player)
         red_tiles = 0
         blue_tiles = 0
         for i in range(0, self.board_height):
             for j in range(0, self.board_width):
-                if board[i][j].get_state() == -1:
+                if self.game_board[i][j].get_state() == -1:
                     blue_tiles += 1
-                if board[i][j].get_state() == 1:
+                if self.game_board[i][j].get_state() == 1:
                     red_tiles += 1
         if red_tiles == 0:
             self.game_state = 0
@@ -299,10 +297,9 @@ class Game():
         card_holder.initaliseBombs()
         for i in range(0,card_holder.length()):
             for _ in range(0,card_holder[i].rarity):
-                deck.append(card_holder[i])
+                self.deck.append(card_holder[i])
    
     def main(self):
-        deck = [None]
         game_board = Board()
         Game.deck_builder(self.deck)
         #1 = red
