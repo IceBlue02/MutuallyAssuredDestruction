@@ -51,7 +51,10 @@ def on_connect():
 def await_start():
     def waitforstart():
         while True:
+            game.await_game_start()
             yield "data: start\n\n"
+
+    return Response(jsonify(waitforstart()), mimetype="text/event-stream")
 
 
 if __name__ == '__main__':
