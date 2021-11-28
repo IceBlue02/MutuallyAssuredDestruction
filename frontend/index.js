@@ -605,6 +605,8 @@ class Game {
     constructor() {
         this.cards = {};
 
+        this.destroyedCount = []
+
         this.turn = 0;
         this.playerTurn = P1;
 
@@ -625,7 +627,7 @@ class Game {
     }
 
     async updateBoardAndHands(doHand = true) {
-        const { board, hand, otherHand, lastPlayed } = await post("get_game_state", { player: this.player });
+        const { board, hand, otherHand, lastPlayed, destroyedCount } = await post("get_game_state", { player: this.player });
 
         const updateBoard = () => {
             this.grid.entities = [];
@@ -659,6 +661,8 @@ class Game {
             this.p1hand.cards = [];
             hand.map((x) => this.p1hand.addCard(x));
         }
+
+        this.destroyedCount = destroyedCount;
 
         if (played) {
             await this.flipCard(played, this.playerTurn === this.player);
@@ -843,6 +847,16 @@ class Game {
         if (card) this.selectedBombShape = this.cards[card.bombId].shape;
     }
 
+    drawScoreboard() {
+        state.ctx.fillStyle = "#fff";
+        state.ctx.font = `72px Arial`;
+        const sbdtext = this.destroyedCount[1].toString() + '-' + this.destroyedCount[0].toString()
+        
+        drawText(1920 / 2 - 100, 900, this.destroyedCount[1].toString(), 100, RED);
+        drawText(1920 / 2, 900, '-', 100, `rgb(255, 255, 255)`);
+        drawText(1920 / 2 + 100, 900, this.destroyedCount[0].toString(), 100, BLUE);
+    }
+
     updateTiming() {
         // Timing code
         const now = Date.now();
@@ -887,6 +901,8 @@ class Game {
         state.ctx.fillStyle = "#fff";
         state.ctx.font = `10px Arial`;
         state.ctx.fillText(`${(1 / this.dt).toFixed(2)} FPS`, 8, 15);
+
+        this.drawScoreboard()
 
         state.wasClickThisFrame = false;
         requestAnimationFrame(() => this.render());
