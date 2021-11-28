@@ -67,24 +67,16 @@ class Board:
         factories = 0
         for i in range (0, len(self.board)):
             for j in range(0, len(self.board[i])):
-                if player == 1:
-                    if self.board[i][j].get_building() == 1 & self.board[i][j].get_state() == 1:
-                        factories  += 1
-                if player == -1:
-                    if self.board[i][j].get_building() == 1 & self.board[i][j].get_state() == -1:
-                        factories  += 1
+                if self.board[i][j].get_building() == 1 and self.board[i][j].get_state() == player:
+                    factories += 1
         return factories
 
     def get_silo(self, player):
         silo = 0
         for i in range (0, len(self.board)):
             for j in range(0, len(self.board[i])):
-                if player == 1:
-                    if self.board[i][j].get_building() == 2 & self.board[i][j].get_state() == 1:
-                        silo  += 1
-                if player == -1:
-                    if self.board[i][j].get_building() == 2 & self.board[i][j].get_state() == -1:
-                        silo  += 1
+                if self.board[i][j].get_building() == 2 and self.board[i][j].get_state() == player:
+                    silo  += 1
         return silo
 
     def apply_bomb(self, bomb_template, x, y):
@@ -93,10 +85,10 @@ class Board:
                 if bomb_template[i][j] == 1:
                     x_pos = x + (j - 2)
                     y_pos = y + (i - 2)
-                    if x_pos < 0 | y_pos < 0 | x_pos > 14| y_pos > 29:
+                    if x_pos < 0 or y_pos < 0 or x_pos > 14 or y_pos > 29:
                         continue
                     else:
-                        self.board[x_pos][y_pos].set_state(0)
+                        self.board[y_pos][x_pos].set_state(0)
 
 class State(IntEnum):
     blue = -1
@@ -267,7 +259,7 @@ class Game():
         self.board_height = 15
         self.number_of_factories = 5
         self.number_of_silos = 5
-        
+
         self.cards = Cards()
         self.offeredcards = []
 
@@ -324,8 +316,8 @@ class Game():
             return {"valid": False}
 
         if player == 1:
-            self.startingboardset[0] = True 
-        else: 
+            self.startingboardset[0] = True
+        else:
             self.startingboardset[1] = True
 
         if self.startingboardset[0] and self.startingboardset[1]:
@@ -342,14 +334,14 @@ class Game():
     def place_factories(self, player, coords):
         if len(coords) != self.number_of_factories:
             return False
-            
+
         for i in range (0, len(coords)-1):
             x = coords[i][0]
             y = coords[i][1]
-            if(self.game_board.board[x][y].state != player):
+            if(self.game_board.board[y][x].state != player):
                 return False
             else:
-                self.game_board.board[x][y].building = 1
+                self.game_board.board[y][x].building = 1
 
         return True
 
@@ -360,10 +352,10 @@ class Game():
         for i in range (0, len(coords)-1):
             x = coords[i][0]
             y = coords[i][1]
-            if(self.game_board.board[x][y].state != player):
+            if(self.game_board.board[y][x].state != player):
                 return False
             else:
-                self.game_board.board[x][y].building = 2  
+                self.game_board.board[y][x].building = 2
 
         return True
 
@@ -431,7 +423,7 @@ class Game():
 
         if cardid not in self.offeredcards:
             return False
-        
+
         if player == 1:
             self.red_hand.append(self.cards.bombs[cardid-1])
             self.red_hand_size += 1
@@ -442,7 +434,7 @@ class Game():
             return False
 
         return True
-        
+
 
     def get_number_of_factories(self):
         return self.number_of_factories
@@ -457,7 +449,7 @@ class Game():
                 if self.red_hand[i].id == bomb_id:
                     self.red_hand.pop(i)
                     number += -1
-                    
+
                 i += 1
         if self.player == -1:
             while number > 0:
@@ -468,29 +460,27 @@ class Game():
                 i += 1
 
     def remove_from_hand(self, player, bomb_id):
-        removed = False
         if player == 1:
             for b in self.red_hand:
                 if b.id == bomb_id:
                     self.red_hand.remove(b)
-                    removed = True
                     break
-
+            else:
+                return False
         else:
             for b in self.blue_hand:
                 if b.id == bomb_id:
                     self.blue_hand.remove(b)
-                    removed = True
                     break
-        
-        return removed
+            else:
+                return False
 
-
+        return True
 
     def deploy_bomb(self, player, coord, bomb_id):
         if player != self.player:
             return False
-  
+
         if self.remove_from_hand(player, bomb_id):
             bomb = self.cards.bombs[bomb_id-1]
             self.game_board.apply_bomb(bomb.shape, int(coord[0]), int(coord[1]))
@@ -498,8 +488,6 @@ class Game():
             return True
         else:
             return False
-
-
 
     def swap_turns(self):
         self.player = self.player * -1

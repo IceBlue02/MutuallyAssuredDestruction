@@ -34,9 +34,7 @@ def get_bombs():
 def place_starting_board():
     player = request.json.get("player")
     factories = request.json.get("factories")
-    silos = request.json.get("silos") 
-    print(player, factories, silos)
-
+    silos = request.json.get("silos")
     return jsonify(game.place_starting_board(player, factories, silos))
 
 
@@ -45,10 +43,7 @@ def await_turn():
     def waitforturn():
         while True:
             playercode = game.await_turn_change()
-            print("data: " + '"player": ' + str(playercode) + "\n\n")
-            yield "data: " + '"player": ' + str(playercode) + "\n\n"
-
-    print(waitforturn())
+            yield "data: " + '{"player": ' + str(playercode) + "}\n\n"
     return Response(waitforturn(), mimetype="text/event-stream")
 
 
@@ -58,17 +53,17 @@ def get_game_state():
     return jsonify(game.get_game_state(int(player)))
 
 
-@app.route("/get_hand_options", methods=["GET"])
+@app.route("/get_hand_options", methods=["POST"])
 def get_hand_options():
     player = request.json.get("player")
-    options = game.get_hand_options(player) 
+    options = game.get_hand_options(player)
     return jsonify(options)
 
 
 @app.route("/choose_card", methods=["POST"])
 def choose_card():
     player = request.json.get("player")
-    cardid = request.json.get("cardid")
+    cardid = request.json.get("cardId")
     valid = game.choose_card(player, cardid)
     return jsonify({"outcome": valid})
 
@@ -76,7 +71,7 @@ def choose_card():
 def place_bomb():
     player = int(request.json.get("player"))
     coords = request.json.get("coords") # 2 length list
-    bombid = request.json.get("bombid") 
+    bombid = request.json.get("bombId")
     success = game.deploy_bomb(player, coords, bombid)
     return jsonify({"outcome": success})
 
@@ -91,5 +86,5 @@ def TEST():
 
 
 if __name__ == '__main__':
-    app.debug = True 
+    app.debug = True
     app.run(threaded=True, host="0.0.0.0", port=5000)

@@ -39,11 +39,6 @@ const state = {
 
 const HOST = "http://127.0.0.1:5000";
 
-const randomCardType = () => {
-    const rand = Math.random();
-    return Math.floor(rand * 12) + 1;
-};
-
 const delay = async (miliseconds) => {
     return new Promise((resolve) => setTimeout(() => resolve(), miliseconds));
 };
@@ -181,9 +176,7 @@ class RectEntity extends Entity {
     }
 }
 
-const tileImage = (type) => (
-    type === TILE_RED ? redTile : type === TILE_BLUE ? blueTile : greyTile
-);
+const tileImage = (type) => (type === TILE_RED ? redTile : type === TILE_BLUE ? blueTile : greyTile);
 class Tile extends ImageEntity {
     constructor(rect, type) {
         super(rect);
@@ -196,7 +189,6 @@ class Tile extends ImageEntity {
 class Card extends ImageEntity {
     constructor(game, rect, bombId) {
         super(rect);
-        if (bombId !== -1) bombId = randomCardType();
         this.bombId = bombId;
         this.image = bombId === -1 ? cardBackRed : game.cards[bombId].image;
         this.animatePos = true;
@@ -552,7 +544,7 @@ class Game {
     constructor() {
         this.cards = {};
 
-        this.turn = 1;
+        this.turn = 0;
         this.playerTurn = P1;
 
         this.selectedBombShape = null;
@@ -570,10 +562,12 @@ class Game {
         this.setupListeners();
     }
 
-    async updateBoardAndHands() {
+    async updateBoardAndHands(doHand = true) {
         const { board, hand } = await post("get_game_state", { player: this.player });
-        this.p1Hand.cards = [];
-        hand.map((x) => this.p1Hand.addCard(x));
+        if (doHand) {
+            this.p1Hand.cards = [];
+            hand.map((x) => this.p1Hand.addCard(x));
+        }
 
         board.forEach((row, x) => {
             row.forEach((tile, y) => {
@@ -607,8 +601,31 @@ class Game {
         }
 
         const turnListener = new EventSource(`${HOST}/await_turn`);
+        let resolve;
+        this.turnProm = new Promise((res) => {
+            resolve = res;
+        });
         turnListener.onmessage = (e) => {
-            console.log(e);
+            const { player } = JSON.parse(e.data);
+            this.playerTurn = player;
+            if (player === P1) {
+                this.turn++;
+            }
+            this.updateBoardAndHands();
+            if (this.turn !== 1 || this.playerTurn !== P1) {
+                this.turnIndicator.show();
+                delay(4000).then(() => {
+                    resolve(player);
+                    this.turnProm = new Promise((res) => {
+                        resolve = res;
+                    });
+                });
+            } else {
+                resolve(player);
+                this.turnProm = new Promise((res) => {
+                    resolve = res;
+                });
+            }
         };
     }
     startGame() {
@@ -616,8 +633,9 @@ class Game {
     }
     beginActualGame() {
         this.turnIndicator.show();
-        delay(4000).then(() => {
+        delay(4000).then(async () => {
             // TODO: This
+            if (this.playerTurn !== this.player) while ((await this.turnProm) !== this.player);
             this.newHand();
         });
     }
@@ -657,8 +675,14 @@ class Game {
         this.siloPlacer.place(x, y);
         if (this.siloPlacer.left === 0) {
             this.siloPlacer.active = false;
-            // TODO: This
 
+            await post("place_starting_board", {
+                player: this.player,
+                factories: this.factoryPlacer.factories,
+                silos: this.siloPlacer.silos,
+            });
+
+            await this.turnProm;
             this.beginActualGame();
         }
     }
@@ -666,18 +690,19 @@ class Game {
     async playCard(x, y) {
         if (!this.selectedCard) return;
         state.wasClickThisFrame = false;
-        await post("place_bomb", {
+        const { outcome } = await post("place_bomb", {
             player: this.player,
             coords: [x, y],
             bombId: this.selectedCard.bombId,
         });
+        if (!outcome) return;
         this.p1Hand.cards = this.p1Hand.cards.filter((x) => x !== this.selectedCard);
+        await this.updateBoardAndHands(false);
         this.selectedCard = null;
         this.selectionActive = false;
 
-        // const gameState = await post("get_game_state", { player: this.player });
-
-        // await delay(500);
+        while ((await this.turnProm) !== this.player);
+        this.newHand();
     }
 
     async newHand() {
@@ -685,16 +710,19 @@ class Game {
         if (handOptions && handOptions.length !== 0) {
             this.cardSelector.newSelection(handOptions);
             this.cardSelector.active = true;
+        } else {
+            this.selectionActive = true;
         }
     }
 
     async chooseNewCard(card) {
         state.wasClickThisFrame = false;
 
-        await post("get_hand_options", {
+        const { outcome } = await post("choose_card", {
             player: this.player,
-            bombId: card.bombId,
+            cardId: card.bombId,
         });
+        if (!outcome) return;
 
         this.p1Hand.cards.push(card);
         this.cardSelector.active = false;
