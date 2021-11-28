@@ -77,8 +77,8 @@ class Board:
         for i in range(0, len(bomb_template)):
             for j in range(0, len(bomb_template[i])):
                 if bomb_template[i][j] == 1:
-                    x_pos = x + (i - 2)
-                    y_pos = y + (j - 2)
+                    x_pos = x + (j - 2)
+                    y_pos = y + (i - 2)
                     if x_pos < 0 | y_pos < 0 | x_pos > 14| y_pos > 29:
                         continue
                     else:
@@ -320,6 +320,15 @@ class Game():
             hand_options.append(card.id)
         return hand_options
 
+    def get_arsenal():
+        card_holder = Cards()
+        card_holder.initaliseBombs()
+        arsenal = [None]
+        for i in range(0,len(card_holder)):
+            for _ in range(0,card_holder[i].rarity):
+                bomb = card_holder[i]
+                arsenal.append(bomb.id)
+        return arsenal
 
     def get_card(self):
         return random.choice(self.deck)
@@ -343,16 +352,26 @@ class Game():
 
     def get_game_state(self):
         if self.player == -1:
-            return self.game_board.get_board(self.player), self.blue_hand
+            hand_id = [None]
+            for i in range(0,len(self.blue_hand)):
+                bomb = self.blue_hand[i]
+                hand_id.append(bomb.id)
+           
+            return self.game_board.get_board(self.player), hand_id
         if self.player == 1:
-            return self.game_board.get_board(self.player), self.red_hand
+            hand_id = [None]
+            for i in range(0,len(self.red_hand)):
+                bomb = self.red_hand[i]
+                hand_id.append(bomb.id)
+            
+            return self.game_board.get_board(self.player), hand_id
         else: 
             print("Error")
 
     def deck_builder(self,deck):
         card_holder = Cards()
         card_holder.initaliseBombs()
-        for i in range(0,card_holder.length()):
+        for i in range(0,len(card_holder)):
             for _ in range(0,card_holder[i].rarity):
                 self.deck.append(card_holder[i])
    
