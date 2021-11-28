@@ -109,15 +109,15 @@ class Cards():
 
     def rarity(self, occurance):
         if occurance == "super rare":
-            return 1
+            return 5
         if occurance == "rare":
-            return 2
-        if occurance == "uncommon":
             return 4
+        if occurance == "uncommon":
+            return 3
         if occurance == "average":
-            return 8
+            return 2
         if occurance == "common":
-            return 16
+            return 1
         else:
             return 0
 
@@ -254,7 +254,6 @@ class Game():
         self.turn_change_event = threading.Event()
         self.game_start_event = threading.Event()
 
-
 #start of game
     def initialise_hand(self):
         hand = [None]
@@ -280,8 +279,7 @@ class Game():
         card_holder = Cards()
         card_holder.initaliseBombs()
         for i in range(0,len(card_holder)):
-            for _ in range(0,card_holder[i].rarity):
-                self.deck.append(card_holder[i])
+            self.deck.append(card_holder[i])
 
     def place_factories(self,turn, data):
         for i in range (0,self.number_of_factories):
@@ -300,7 +298,6 @@ class Game():
                 return False
             else:
                 self.game_board[x][y].building = 2  
-
 #getters
     def get_cards(self):
         data = []
@@ -308,12 +305,12 @@ class Game():
             if not c:
                 continue
             print(c.id)
-            carddata = {}
-            carddata["id"] = c.id
-            carddata["name"] = c.name
-            carddata["rarity"] = c.rarity
-            carddata["shape"] = c.shape
-            data.append(carddata)
+            card_data = {}
+            card_data["id"] = c.id
+            card_data["name"] = c.name
+            card_data["rarity"] = c.rarity
+            card_data["shape"] = c.shape
+            data.append(card_data)
 
         return data
 
@@ -339,7 +336,12 @@ class Game():
         return self.game_board.get_silo(self.player)
 
     def get_card(self):
-        return random.choice(self.deck)
+        not_chosen = True
+        while not_chosen:
+            card = random.choice(self.deck)
+            if card.rarity >= get_factory(self.player):
+                not_chosen = False
+                return card
 
     def get_arsenal():
         card_holder = Cards()
@@ -365,13 +367,6 @@ class Game():
             hand_options.append(card.id)
         return hand_options
 
-    def get_number_of_factories(self):
-        return self.number_of_factories
-
-    def get_number_of_silos(self):
-        return self.number_of_silos
-
-
     def deploy_bomb(self, bomb_id):
         if self.player == -1:
             for i in range(0, len(self.blue_hand)):
@@ -384,7 +379,7 @@ class Game():
                     return True
             return False
    
-
+   
     def main(self):
         game_board = Board()
         Game.deck_builder(self.deck)
