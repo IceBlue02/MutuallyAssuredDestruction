@@ -506,7 +506,7 @@ class Game:
     def remove_card(self, bomb_id, to_remove, player=None):
         if player is None:
             player = self.player
-        hand = self.red_hand if player == 1 else self.blue_hand
+        hand = self.red_hand if player == Player.RED else self.blue_hand
 
         for card in hand:
             if to_remove == 0:
@@ -531,7 +531,7 @@ class Game:
         else:
             remove_count = 1
 
-        if self.remove_card(player, remove_count, bomb_id):
+        if not self.remove_card(bomb_id, remove_count, player):
             bomb = self.cards.bombs[bomb_id - 1]
             self.game_board.apply_bomb(bomb.shape, int(coord[0]), int(coord[1]))
             self.last_played = bomb.id
