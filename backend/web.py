@@ -1,15 +1,10 @@
 from datetime import MINYEAR
-from flask import Flask, render_template, Response, request, jsonify
+from flask import Flask, Response, request, jsonify, send_from_directory
 from master import Game
 
 
 app = Flask(__name__)
 game = Game()
-
-
-@app.route('/')
-def main():
-    return render_template('../frontend/index.html')
 
 
 @app.route("/connect", methods=["POST"])
@@ -77,6 +72,15 @@ def place_bomb():
     bombid = request.json.get("bombId")
     success = game.deploy_bomb(player, coords, bombid)
     return jsonify({"outcome": success})
+
+
+
+@app.route('/')
+@app.route('/<path:static>')
+def main(static=None):
+    if static is None:
+        static = "index.html"
+    return send_from_directory("../frontend", static)
 
 
 if __name__ == '__main__':
