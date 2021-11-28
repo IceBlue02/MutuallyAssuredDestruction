@@ -393,32 +393,57 @@ class Game():
                     if self.blue_hand[i].id == bomb_id:
                         bomb = self.cards.bombs[bomb_id-1]
                         duplicate_bombs = 0
+                        higher_bomb = 0
+                        higher_bomb_id = [] 
                         for i in range(0, len(self.blue_hand)):
                             if self.blue_hand[i].id == bomb_id:
                                 duplicate_bombs += 1
+                                test_bomb = self.cards.bombs[self.blue_hand[i].id -1]
+                                if test_bomb.rarity > bomb.rarity:
+                                    higher_bomb += 1
+                                    higher_bomb_id.append(test_bomb.id)
                         if duplicate_bombs >= bomb.rarity:
                             self.game_board.apply_bomb(bomb.shape, int(coord[0]), int(coord[1]))
                             self.remove_card(bomb_id, bomb.rarity)
                             self.swap_turns()
                             return True
+                        if (duplicate_bombs + higher_bomb) >= bomb.rarity:
+                            self.game_board.apply_bomb(bomb.shape, int(coord[0]), int(coord[1]))
+                            self.remove_card(bomb_id, bomb.rarity)
+                            for i in range(0, len(higher_bomb_id)):
+                                self.remove_card(higher_bomb_id[i], 1)
+                            self.swap_turns()
+                            return True
                         else:
                             return False
-            if self.player == 1:
+            if self.player == -1:
                 for i in range(0, len(self.red_hand)):
-                    if self.blue_hand[i].id == bomb_id:
+                    if self.red_hand[i].id == bomb_id:
                         bomb = self.cards.bombs[bomb_id-1]
                         duplicate_bombs = 0
+                        higher_bomb = 0
+                        higher_bomb_id = [] 
                         for i in range(0, len(self.red_hand)):
-                            if self.blue_hand[i].id == bomb_id:
+                            if self.red_hand[i].id == bomb_id:
                                 duplicate_bombs += 1
+                                test_bomb = self.cards.bombs[self.red_hand[i].id -1]
+                                if test_bomb.rarity > bomb.rarity:
+                                    higher_bomb += 1
+                                    higher_bomb_id.append(test_bomb.id)
                         if duplicate_bombs >= bomb.rarity:
                             self.game_board.apply_bomb(bomb.shape, int(coord[0]), int(coord[1]))
                             self.remove_card(bomb_id, bomb.rarity)
                             self.swap_turns()
                             return True
+                        if (duplicate_bombs + higher_bomb) >= bomb.rarity:
+                            self.game_board.apply_bomb(bomb.shape, int(coord[0]), int(coord[1]))
+                            self.remove_card(bomb_id, bomb.rarity)
+                            for i in range(0, len(higher_bomb_id)):
+                                self.remove_card(higher_bomb_id[i], 1)
+                            self.swap_turns()
+                            return True
                         else:
                             return False
-                return False
         else:
             return False
    
