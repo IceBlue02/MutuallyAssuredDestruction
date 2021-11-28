@@ -550,9 +550,9 @@ class Factory extends ImageEntity {
 }
 
 class Silo extends ImageEntity {
-    constructor(rect) {
+    constructor(rect, rubble) {
         super(rect);
-        this.image = asset("silo.png");
+        this.image = asset(rubble ? "siloRubble.png" : "silo.png");
         this.animateScale = true;
     }
 }
