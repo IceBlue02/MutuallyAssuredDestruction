@@ -24,7 +24,7 @@ def on_connect():
 
 @app.route("/await_start", methods=["GET"])
 def await_start():
-    game = get_game(int(request.json.get("gameid")))
+    game = get_game(int(request.args.get("gameid")))
     def waitforstart():
         while True:
             game.await_game_start()
@@ -35,7 +35,7 @@ def await_start():
 
 @app.route("/get_cards", methods=["GET"])
 def get_bombs():
-    game = get_game(int(request.json.get("gameid")))
+    game = get_game(int(request.args.get("gameid")))
     return jsonify(game.get_cards())
 
 
@@ -50,7 +50,7 @@ def place_starting_board():
 
 @app.route("/await_turn", methods=["GET"])
 def await_turn():
-    game = get_game(int(request.json.get("gameid")))
+    game = get_game(int(request.args.get("gameid")))
     def waitforturn():
         while True:
             playercode = game.await_turn_change()
@@ -92,13 +92,9 @@ def place_bomb():
     return jsonify({"outcome": success})
 
 @app.route("/on_disconnect", methods=["POST"])
-def on_disconnect():
+def on_disconnect(): #'##
     if int(request.json.get("gameid")) in games.keys():
         del games[int(request.json.get("gameid"))]
-    
-
-
-
 
 if __name__ == '__main__':
     app.debug = True
