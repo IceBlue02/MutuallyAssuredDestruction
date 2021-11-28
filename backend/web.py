@@ -9,21 +9,26 @@ game = Game()
 def main():
     return render_template('../frontend/index.html')
 
-@app.route("/place_bomb", methods=["POST"])
-def place_bomb():
-    player = int(request.json.get("player"))
-    coords = request.json.get("coords") # 2 length list
-    bombid = request.json.get("bombid") 
-    success = game.deploy_bomb(player, coords, bombid)
-    return jsonify({"outcome": success})
+
+@app.route("/connect", methods=["POST"])
+def on_connect():
+    return jsonify(game.on_game_entry())
 
 
-@app.route("/get_hand_options", methods=["POST"])
-def get_hand_options():
-    player = request.form.get("player")
-    #options = Game.get_hand_options(player) 
-    options = [1, 4, 7, 9] # TEST
-    return jsonify(options)
+@app.route("/await_start", methods=["GET"])
+def await_start():
+    def waitforstart():
+        while True:
+            game.await_game_start()
+            yield "data: start\n\n"
+
+    return Response(waitforstart(), mimetype="text/event-stream")
+
+
+@app.route("/get_cards", methods=["GET"])
+def get_bombs():
+    return jsonify(game.get_cards())
+
 
 @app.route("/place_starting_board", methods=["POST"])
 def place_starting_board():
@@ -35,41 +40,49 @@ def place_starting_board():
     return jsonify(game.place_starting_board(player, factories, silos))
 
 
-
-@app.route("/get_game_state", methods=["POST"])
-def get_game_state():
-    player = request.json.get("player")
-    return jsonify(game.get_game_state(int(player)))
-    return False
-
-
-@app.route("/get_cards", methods=["GET"])
-def get_bombs():
-    return jsonify(game.get_cards())
-
-@app.route("/connect", methods=["POST"])
-def on_connect():
-    return jsonify(game.on_game_entry())
-
 @app.route("/await_turn", methods=["GET"])
 def await_turn():
     def waitforturn():
         while True:
             playercode = game.await_turn_change()
-            yield "data: " + '{"player": ' + str(playercode) + "}\n\n"
+            print("data: " + '"player": ' + str(playercode) + "\n\n")
+            yield "data: " + '"player": ' + str(playercode) + "\n\n"
 
     print(waitforturn())
     return Response(waitforturn(), mimetype="text/event-stream")
 
 
-@app.route("/await_start", methods=["GET"])
-def await_start():
-    def waitforstart():
-        while True:
-            game.await_game_start()
-            yield "data: start\n\n"
+@app.route("/get_game_state", methods=["POST"])
+def get_game_state():
+    player = request.json.get("player")
+    return jsonify(game.get_game_state(int(player)))
 
-    return Response(waitforstart(), mimetype="text/event-stream")
+
+@app.route("/get_hand_options", methods=["GET"])
+def get_hand_options():
+    player = request.json.get("player")
+    options = game.get_hand_options(player) 
+    return jsonify(options)
+
+
+@app.route("/choose_card", methods=["POST"])
+def choose_card():
+    player = request.json.get("player")
+    cardid = request.json.get("cardid")
+    valid = game.choose_card(player, cardid)
+    return jsonify({"outcome": valid})
+
+@app.route("/place_bomb", methods=["POST"])
+def place_bomb():
+    player = int(request.json.get("player"))
+    coords = request.json.get("coords") # 2 length list
+    bombid = request.json.get("bombid") 
+    success = game.deploy_bomb(player, coords, bombid)
+    return jsonify({"outcome": success})
+
+
+
+# TESTING ONLY
 
 @app.route("/trigger_turn_change")
 def TEST():
