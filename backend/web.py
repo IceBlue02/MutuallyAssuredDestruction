@@ -1,9 +1,11 @@
 from datetime import MINYEAR
 from flask import Flask, Response, json, request, jsonify, send_from_directory
 from master import Game
+from flask_cors import CORS
 
 
 app = Flask(__name__)
+CORS(app)
 game = Game()
 
 
