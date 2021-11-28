@@ -1,11 +1,11 @@
 const P1 = 1,
     P2 = -1;
-const TILE_BLUE = -1,
+const TILE_RED = 1,
     TILE_GREY = 0,
-    TILE_RED = 1;
-const EMPTY = 1,
-    SILO = 1,
-    FACTORY = 2;
+    TILE_BLUE = -1;
+const BUILDING_EMPTY = 0,
+    BUILDING_FACTORY = 1,
+    BUILDING_SILO = 2;
 const BOMB_SQUARE = 1,
     BOMB_CIRCLE = 2,
     BOMB_DIAMOND = 3,
@@ -132,6 +132,7 @@ class Entity {
     }
     setRect(rect) {
         this.rect = { ...rect };
+        if (!this.animatePos) this._rect = { ...rect };
     }
     render() {
         if (this.animatePos) {
@@ -187,10 +188,10 @@ class Tile extends ImageEntity {
 }
 
 class Card extends ImageEntity {
-    constructor(game, rect, bombId) {
+    constructor(game, rect, bombId, showFace = true) {
         super(rect);
         this.bombId = bombId;
-        this.image = bombId === -1 ? cardBackRed : game.cards[bombId].image;
+        this.image = showFace ? game.cards[bombId].image : cardBackRed;
         this.animatePos = true;
         this.animateScale = true;
     }
@@ -206,8 +207,8 @@ class Hand {
 
         this.selectedCard = null;
     }
-    addCard(type) {
-        this.cards.push(new Card(this.game, rect(), type));
+    addCard(type, showFace = true) {
+        this.cards.push(new Card(this.game, rect(), type, showFace));
     }
     render() {
         const cardWidth = this.large ? (this.game.selectionActive ? 200 : 150) : 100;
@@ -330,6 +331,72 @@ class CardSelector {
     }
 }
 
+class NoCardsBanner {
+    QUIPS = [
+        "Should have placed those silos better",
+        "Better luck next time. If there's a next time.",
+        "No hard feelings, but that's not cool",
+        "Seriously, already?",
+    ];
+    FACTORY_QUIPS = [
+        "Should have placed those factories better",
+        "Guess you're on your last leg now",
+        "A bomber without factories is a dead bomber - you, just now",
+    ];
+
+    constructor(game) {
+        this.game = game;
+        this.banner = new RectEntity(rect(), RED);
+
+        this.showing = this.hiding = false;
+        this.alpha = 0;
+        this.showTime = this.hideTime = null;
+        this.quip = "";
+    }
+    show() {
+        const quips = this.game.grid.entities.find(
+            ([[x, y], entity]) => entity instanceof Factory && this.game.grid.tiles[x][y].type === this.game.player
+        )
+            ? this.QUIPS
+            : this.FACTORY_QUIPS;
+        this.quip = quips[Math.floor(Math.random() * quips.length)];
+
+        const height = 1080 / 3;
+        this.showing = true;
+        this.showTime = state.animation;
+
+        this.showTime = state.animation;
+        this.banner.rect = rect(0, 540 - height / 2, 0, height);
+        this.banner._rect = { ...this.banner.rect };
+        this.banner.animatePos = true;
+        this.banner.rect.w = 1920;
+        this.banner.stepSpeed = 15;
+
+        delay(4000).then(() => this.hide());
+    }
+    hide() {
+        this.hideTime = state.animation;
+        this.showing = false;
+        this.hiding = true;
+        this.banner.stepSpeed = 10;
+
+        this.banner.rect.x = 1920;
+        this.banner.rect.w = 0;
+
+        this.hideTime = state.animation;
+    }
+    render() {
+        this.banner.colour = this.game.player === P1 ? RED : BLUE;
+        this.banner.render();
+
+        if (this.showing) this.alpha = Math.min(1, (state.animation - this.showTime) * 3);
+        else if (this.hiding) this.alpha = 1 - Math.min(1, (state.animation - this.hideTime) * 3);
+
+        drawText(1920 / 2, 1080 / 2 - 50, "No cards this turn", 100, `rgba(255, 255, 255, ${this.alpha})`);
+        drawText(1920 / 2, 1080 / 2 + 50, `${this.quip}`, 42, `rgba(255, 255, 255, ${this.alpha})`);
+    }
+}
+
 class Grid {
     WIDTH = 30;
     HEIGHT = 15;
@@ -421,21 +488,17 @@ class TurnIndicator {
         this.game = game;
         this.top = new RectEntity(rect(), RED);
         this.bottom = new RectEntity(rect(), RED);
-        this.top.stepSpeed = 15;
-        this.bottom.stepSpeed = 15;
 
-        this.showing = false;
-        this.hiding = false;
+        this.showing = this.hiding = false;
         this.alpha = 0;
-        this.showTime = null;
-        this.hideTime = null;
+        this.showTime = this.hideTime = null;
     }
     render() {
         const redTurn = this.game.playerTurn === P1;
         this.top.colour = redTurn ? RED : BLUE;
         this.bottom.colour = redTurn ? RED : BLUE;
 
-        const text = redTurn ? "Red" : "Blue";
+        const text = this.game.playerTurn === this.game.player ? "Your" : redTurn ? "Red's" : "Blue's";
 
         this.top.render();
         this.bottom.render();
@@ -444,7 +507,7 @@ class TurnIndicator {
         else if (this.hiding) this.alpha = 1 - Math.min(1, (state.animation - this.hideTime) * 3);
 
         drawText(1920 / 2, 1080 / 2 - 75, `Turn ${this.game.turn}`, 200, `rgba(255, 255, 255, ${this.alpha})`);
-        drawText(1920 / 2, 1080 / 2 + 75, `${text}'s turn`, 100, `rgba(255, 255, 255, ${this.alpha})`);
+        drawText(1920 / 2, 1080 / 2 + 75, `${text} turn`, 100, `rgba(255, 255, 255, ${this.alpha})`);
     }
     show() {
         const height = 1080 / 4;
@@ -457,6 +520,8 @@ class TurnIndicator {
         this.bottom.rect = rect(1920, 540, 0, height);
         this.bottom._rect = { ...this.bottom.rect };
         this.bottom.animatePos = true;
+        this.top.stepSpeed = 15;
+        this.bottom.stepSpeed = 15;
 
         this.top.rect.w = 1920;
         this.bottom.rect.x = 0;
@@ -468,8 +533,6 @@ class TurnIndicator {
         this.hiding = true;
         this.top.stepSpeed = 10;
         this.bottom.stepSpeed = 10;
-
-        this.showing = false;
         this.top.rect.x = 1920;
         this.top.rect.w = 0;
         this.bottom.rect.w = 0;
@@ -507,7 +570,6 @@ class FactoryPlacer {
         this.factories.push([x, y]);
         this.left--;
         this.game.grid.entities.push([[x, y], new Factory(rect())]);
-        // TODO: This
     }
 
     render() {
@@ -530,7 +592,6 @@ class SiloPlacer {
         this.silos.push([x, y]);
         this.left--;
         this.game.grid.entities.push([[x, y], new Silo(rect())]);
-        // TODO: This
     }
 
     render() {
@@ -551,6 +612,7 @@ class Game {
         this.selectionActive = false;
 
         this.selectedCard = null;
+        this.animatingCard = null;
 
         state.canvas = document.getElementById("root");
         /** @type {CanvasRenderingContext2D} */
@@ -563,21 +625,65 @@ class Game {
     }
 
     async updateBoardAndHands(doHand = true) {
-        const { board, hand } = await post("get_game_state", { player: this.player });
+        const { board, hand, otherHand, lastPlayed } = await post("get_game_state", { player: this.player });
+
+        const updateBoard = () => {
+            this.grid.entities = [];
+            board.forEach((row, x) => {
+                row.forEach(([player, building], y) => {
+                    this.grid.setTile(x, y, player);
+                    switch (building) {
+                        case BUILDING_EMPTY:
+                            break;
+                        case BUILDING_SILO:
+                            this.grid.entities.push([[x, y], new Silo(rect())]);
+                            break;
+                        case BUILDING_FACTORY:
+                            this.grid.entities.push([[x, y], new Factory(rect())]);
+                            break;
+                    }
+                });
+            });
+        };
+
+        let played;
+        if (this.playerTurn === this.player && lastPlayed) {
+            played = this.p2hand.cards[this.p2hand.cards.length - 1];
+            played.bombId = lastPlayed;
+        } else if (this.selectCard) played = this.selectedCard;
+
+        this.p2hand.cards = [];
+        new Array(otherHand).fill(null).map(() => this.p2hand.addCard(-1, false));
+
         if (doHand) {
-            this.p1Hand.cards = [];
-            hand.map((x) => this.p1Hand.addCard(x));
+            this.p1hand.cards = [];
+            hand.map((x) => this.p1hand.addCard(x));
         }
 
-        board.forEach((row, x) => {
-            row.forEach((tile, y) => {
-                this.grid.setTile(x, y, tile);
-            });
-        });
+        if (played) {
+            await this.flipCard(played, this.playerTurn === this.player);
+            updateBoard();
+        } else updateBoard();
+    }
+    async flipCard(played, spin) {
+        this.animatingCard = played;
+        played.stepSpeed = 7;
 
-        const { hand: p2hand } = await post("get_game_state", { player: this.player === P1 ? P2 : P1 });
-        this.p2Hand.cards = [];
-        p2hand.map((x) => this.p2Hand.addCard(-1));
+        played.setRect(rect((1920 - 250) / 2, (1080 - 350) / 2, 250, 350));
+
+        if (spin) {
+            await delay(500);
+            played.rect.x = 1920 / 2;
+            played.rect.w = 0;
+            await delay(500);
+            played.image = this.cards[played.bombId].image;
+            played.rect.x = (1920 - 250) / 2;
+            played.rect.w = 250;
+            played.stepSpeed = 5;
+            await delay(500);
+        }
+        await delay(1500);
+        this.animatingCard = null;
     }
 
     async initialSetup() {
@@ -605,20 +711,20 @@ class Game {
         this.turnProm = new Promise((res) => {
             resolve = res;
         });
-        turnListener.onmessage = (e) => {
+        turnListener.onmessage = async (e) => {
             const { player } = JSON.parse(e.data);
             this.playerTurn = player;
             if (player === P1) {
                 this.turn++;
             }
-            this.updateBoardAndHands();
+            await this.updateBoardAndHands();
             if (this.turn !== 1 || this.playerTurn !== P1) {
                 this.turnIndicator.show();
-                delay(4000).then(() => {
-                    resolve(player);
-                    this.turnProm = new Promise((res) => {
-                        resolve = res;
-                    });
+                await delay(4000);
+
+                resolve(player);
+                this.turnProm = new Promise((res) => {
+                    resolve = res;
                 });
             } else {
                 resolve(player);
@@ -634,7 +740,6 @@ class Game {
     beginActualGame() {
         this.turnIndicator.show();
         delay(4000).then(async () => {
-            // TODO: This
             if (this.playerTurn !== this.player) while ((await this.turnProm) !== this.player);
             this.newHand();
         });
@@ -696,7 +801,7 @@ class Game {
             bombId: this.selectedCard.bombId,
         });
         if (!outcome) return;
-        this.p1Hand.cards = this.p1Hand.cards.filter((x) => x !== this.selectedCard);
+        this.p1hand.cards = this.p1hand.cards.filter((x) => x !== this.selectedCard);
         await this.updateBoardAndHands(false);
         this.selectedCard = null;
         this.selectionActive = false;
@@ -711,6 +816,8 @@ class Game {
             this.cardSelector.newSelection(handOptions);
             this.cardSelector.active = true;
         } else {
+            this.noCardsBanner.show();
+            await delay(4000);
             this.selectionActive = true;
         }
     }
@@ -724,7 +831,7 @@ class Game {
         });
         if (!outcome) return;
 
-        this.p1Hand.cards.push(card);
+        this.p1hand.cards.push(card);
         this.cardSelector.active = false;
         this.selectedCard = null;
         this.selectionActive = true;
@@ -762,11 +869,15 @@ class Game {
         renderStats(0);
         renderStats(1);
 
-        this.p1Hand.render();
-        this.p2Hand.render();
+        this.p1hand.render();
+        this.p2hand.render();
         this.cardSelector.render();
 
+        if (this.animatingCard) this.animatingCard.render();
+
+        this.noCardsBanner.render();
         this.turnIndicator.render();
+
         this.factoryPlacer.render();
         this.siloPlacer.render();
 
@@ -785,9 +896,10 @@ class Game {
         this.factoryPlacer = new FactoryPlacer(this);
         this.siloPlacer = new SiloPlacer(this);
         this.grid = new Grid(this);
-        this.p1Hand = new Hand(this, P1);
-        this.p2Hand = new Hand(this, P2);
+        this.p1hand = new Hand(this, P1);
+        this.p2hand = new Hand(this, P2);
         this.cardSelector = new CardSelector(this);
+        this.noCardsBanner = new NoCardsBanner(this);
 
         await this.initialSetup();
 

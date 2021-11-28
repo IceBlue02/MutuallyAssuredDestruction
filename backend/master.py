@@ -1,7 +1,23 @@
 from enum import IntEnum
 import random
-from re import match
 import threading
+
+
+class Player(IntEnum):
+    RED = 1
+    BLUE = -1
+
+
+class State(IntEnum):
+    RED = 1
+    GREY = 0
+    BLUE = -1
+
+
+class Building(IntEnum):
+    EMPTY = 0
+    FACTORY = 1
+    SILO = 2
 
 
 class Tile:
@@ -9,98 +25,83 @@ class Tile:
         self.state = state
         self.building = building
 
-    def get_building(self):
-        return self.building
+    @property
+    def serial(self):
+        return [self.state, self.building]
 
-    def get_state(self):
-        return self.state
 
-    def set_building(self, building):
-        self.building = building
-        # 0 = no building
-        # 1 = factory
-        # 2 = silo
+def blank_board(width, height):
+    return [[None for _ in range(height)] for _ in range(width)]
 
-    def set_state(self, state):
-        self.state = state
-        # 0 = destoryed
-        # 1 = red
-        # -1 = blue
-
-    def __int__(self):
-        return self.state * (self.building + 1)
-        # 0 = destroyed
-        # 1/-1 = red/blue normal
-        # 2/-2 = red/blue factory
-        # 3/-3 = red/blue silo
 
 class Board:
+    WIDTH = 30
+    HEIGHT = 15
+
     def __init__(self):
-        self.board = [[None for x in range(30)] for x in range(15)]
+        self.board = blank_board(self.WIDTH, self.HEIGHT)
         self.fill_board()
 
-    def fill_board(self):
-        for i in range(0, len(self.board)):
-            for j in range(0, len(self.board[i])):
-                if j < 15:
-                    self.board[i][j] = Tile(1, 0)
-                else:
-                    self.board[i][j] = Tile(-1, 0)
+    @property
+    def width(self):
+        return len(self.board)
 
-    def get_int_board(self, player):
-        board = [[None for x in range(30)] for x in range(15)]
-        for i in range (0, len(self.board)):
-            for j in range(0, len(self.board[i])):
-                if player == 1:
-                    if self.board[i][j].get_state() >= 0:
-                        board[i][j] = int(self.board[i][j])
-                    else:
-                        board[i][j] = int(Tile(-1, 0))
-                if player == -1:
-                    if self.board[i][j].get_state() <= 0:
-                        board[i][j] = int(self.board[i][j])
-                    else:
-                        board[i][j] = int(Tile(1, 0))
+    @property
+    def height(self):
+        return len(self.board[0])
+
+    def fill_board(self):
+        for x in range(self.width):
+            for y in range(self.height):
+                if x < self.WIDTH // 2:
+                    self.board[x][y] = Tile(State.RED, Building.EMPTY)
+                else:
+                    self.board[x][y] = Tile(Player.BLUE, Building.EMPTY)
+
+    def get_serial_board(self, player):
+        board = blank_board(self.WIDTH, self.HEIGHT)
+        for x in range(self.width):
+            for y in range(self.height):
+                if self.board[x][y].state != -player:
+                    board[x][y] = self.board[x][y].serial
+                else:
+                    board[x][y] = Tile(
+                        State.BLUE if player == Player.RED else State.RED,
+                        Building.EMPTY
+                    ).serial
         return board
 
-    def get_factory(self, player):
+    def get_factory_count(self, player):
         factories = 0
-        for i in range (0, len(self.board)):
-            for j in range(0, len(self.board[i])):
-                if self.board[i][j].get_building() == 1 and self.board[i][j].get_state() == player:
+        for x in range(self.width):
+            for y in range(self.height):
+                if (self.board[x][y].building == Building.FACTORY
+                        and self.board[x][y].state == player):
                     factories += 1
         return factories
 
-    def get_silo(self, player):
+    def get_silo_count(self, player):
         silo = 0
-        for i in range (0, len(self.board)):
-            for j in range(0, len(self.board[i])):
-                if self.board[i][j].get_building() == 2 and self.board[i][j].get_state() == player:
-                    silo  += 1
+        for x in range (self.width):
+            for y in range(self.height):
+                if (self.board[x][y].building == Building.SILO
+                        and self.board[x][y].state == player):
+                    silo += 1
         return silo
 
     def apply_bomb(self, bomb_template, x, y):
-        for i in range(0, len(bomb_template)):
-            for j in range(0, len(bomb_template[i])):
-                if bomb_template[i][j] == 1:
-                    x_pos = x + (j - 2)
-                    y_pos = y + (i - 2)
-                    if x_pos < 0 or y_pos < 0 or x_pos > 14 or y_pos > 29:
+        for dx in range(len(bomb_template)):
+            for dy in range(len(bomb_template[dx])):
+                if bomb_template[dx][dy] == 1:
+                    x_pos = x + (dy - 2)
+                    y_pos = y + (dx - 2)
+                    if x_pos < 0 or y_pos < 0 or x_pos > 29 or y_pos > 14:
                         continue
                     else:
-                        self.board[y_pos][x_pos].set_state(0)
+                        self.board[x_pos][y_pos].state = State.GREY
 
-class State(IntEnum):
-    blue = -1
-    grey = 0
-    red = 1
 
-class Building(IntEnum):
-    empty = 0
-    factory = 1
-    silo = 2
-
-class Bomb():
+class Bomb:
     def __init__(self, id, name, rarity, description, shape):
         self.name = name
         self.id = id
@@ -108,155 +109,131 @@ class Bomb():
         self.description = description
         self.shape = shape
 
-class Cards():
+
+RARITY_SUPER_RARE = 5
+RARITY_RARE = 4
+RARITY_UNCOMMON = 3
+RARITY_AVERAGE = 2
+RARITY_COMMON = 1
+
+class Cards:
     def __init__(self):
         self.bombs = []
-        self.initaliseBombs()
+        self.init_bombs()
 
-    def rarity(self, occurance):
-        if occurance == "super rare":
-            return 1
-        if occurance == "rare":
-            return 2
-        if occurance == "uncommon":
-            return 4
-        if occurance == "average":
-            return 8
-        if occurance == "common":
-            return 16
-        else:
-            return 0
-
-    def initaliseBombs(self):
-        square = Bomb(1,"Square", self.rarity("average"), "Simple, but effective.", [
+    def init_bombs(self):
+        self.bombs.append(Bomb(1,"Square", RARITY_AVERAGE, "Simple, but effective.", [
             [1,1,1,1,0],
             [1,1,1,1,0],
             [1,1,1,1,0],
             [1,1,1,1,0],
             [0,0,0,0,0],
-        ])
-        self.bombs.append(square)
+        ]))
 
-        circle = Bomb(2,"Circle", self.rarity("rare"), "The circle of (no) life.", [
+        self.bombs.append(Bomb(2,"Circle", RARITY_RARE, "The circle of (no) life.", [
             [0,1,1,1,0],
             [1,1,1,1,1],
             [1,1,1,1,1],
             [1,1,1,1,1],
             [0,1,1,1,0],
-        ]
-        )
-        self.bombs.append(circle)
+        ]))
 
-        diamond = Bomb(3,"Bomb",self.rarity("common"), "Diamonds are forever. So is the damage left by this.", [
+        self.bombs.append(Bomb(3,"Bomb",RARITY_COMMON, "Diamonds are forever. So is the damage left by this.", [
             [0,0,1,0,0],
             [0,1,1,1,0],
             [1,1,1,1,1],
             [0,1,1,1,0],
             [0,0,1,0,0],
-        ])
+        ]))
 
-        self.bombs.append(diamond)
-
-        target= Bomb(4,"Target",self.rarity("rare"), "You can't miss.", [
+        self.bombs.append(Bomb(4,"Target",RARITY_RARE, "You can't miss.", [
             [1,1,1,1,1],
             [1,0,0,0,1],
             [1,0,1,0,1],
             [1,0,0,0,1],
             [1,1,1,1,1],
-        ])
-        self.bombs.append(target)
+        ]))
 
-        www_dot_bomb = Bomb(5,"wwwDotBomb ", self.rarity("common"),"...................", [
+        self.bombs.append(Bomb(5,"wwwDotBomb ", RARITY_COMMON,"...................", [
             [1,0,1,0,1],
             [0,1,0,1,0],
             [1,0,1,0,1],
             [0,1,0,1,0],
             [1,0,1,0,1],
-        ])
-        self.bombs.append(www_dot_bomb)
+        ]))
 
-        X = Bomb(6,"X", self.rarity("common"),"It marks the spot. And hits it.", [
+        self.bombs.append(Bomb(6,"X", RARITY_COMMON,"It marks the spot. And hits it.", [
             [1,0,0,0,1],
             [0,1,0,1,0],
             [0,0,1,0,0],
             [0,1,0,1,0],
             [1,0,0,0,1],
-        ])
-        self.bombs.append(X)
+        ]))
 
-        H0 = Bomb(7,"H0",self.rarity("common"), "Can you add the H0,Bomb to the game?' 'Yeah sure I got you'", [
+        self.bombs.append(Bomb(7,"H0",RARITY_COMMON, "Can you add the H0,Bomb to the game?' 'Yeah sure I got you'", [
             [1,0,0,0,1],
             [1,0,0,0,1],
             [1,1,1,1,1],
             [1,0,0,0,1],
             [1,0,0,0,1],
-        ])
-        self.bombs.append(H0)
+        ]))
 
-        PO = Bomb(8,"P0", self.rarity("average"),"Not sure why you'd make a bomb like this, but there you go.", [
+        self.bombs.append(Bomb(8,"P0", RARITY_AVERAGE,"Not sure why you'd make a bomb like this, but there you go.", [
             [1,1,1,1,0],
             [1,1,1,1,0],
             [1,1,1,1,0],
             [1,0,0,0,0],
             [1,0,0,0,0],
-        ])
-        self.bombs.append(PO)
+        ]))
 
-        cherry = Bomb(9,"Cherry", self.rarity("super rare"), "Yep, it's a pair of Cherries. ", [
+        self.bombs.append(Bomb(9,"Cherry", RARITY_SUPER_RARE, "Yep, it's a pair of Cherries. ", [
             [0,0,1,0,0],
             [0,0,1,0,0],
             [0,0,1,0,0],
             [1,1,0,1,1],
             [1,1,0,1,1],
-        ])
-        self.bombs.append(cherry)
+        ]))
 
-        e = Bomb(10,"e", self.rarity("rare"), "2.71828182845904523536028747135", [
+        self.bombs.append(Bomb(10,"e", RARITY_RARE, "2.71828182845904523536028747135", [
             [1,1,1,1,1],
             [1,0,0,0,1],
             [1,1,1,1,1],
             [1,0,0,0,0],
             [1,1,1,1,1],
-        ])
-        self.bombs.append(e)
+        ]))
 
-        A0 = Bomb(11,"A0",self.rarity("common"), "I know I'll be A0,O, A0,O0,K.", [
+        self.bombs.append(Bomb(11,"A0",RARITY_COMMON, "I know I'll be A0,O, A0,O0,K.", [
             [0,0,1,0,0],
             [0,1,0,1,0],
             [0,1,1,1,0],
             [1,0,0,0,1],
             [1,0,0,0,1],
-        ])
-        self.bombs.append(A0)
+        ]))
 
-        England = Bomb(12, "ENGLAND",self.rarity("common"), "RULE BRITANNIA, BRITANNIA RULES THE WAVES", [
+        self.bombs.append(Bomb(12, "ENGLAND",RARITY_COMMON, "RULE BRITANNIA, BRITANNIA RULES THE WAVES", [
             [0,0,1,0,0],
             [0,0,1,0,0],
             [1,1,1,1,1],
             [0,0,1,0,0],
             [0,0,1,0,0],
-        ])
-        self.bombs.append(England)
+        ]))
 
-class Game():
+class Game:
     STARTING_HAND_SIZE = 5
+
     def __init__(self):
-        self.deck = [None]
+        self.deck = []
         self.deck_builder()
         self.player = 1
 
-
-
         self.game_board = Board()
-        self.red_hand_size = self.game_board.get_silo(1)
-        self.blue_hand_size = self.game_board.get_silo(-1)
-        self.red_hand = self.initialise_hand()
-        self.blue_hand = self.initialise_hand()
+        self.red_hand_size = self.game_board.get_silo_count(Player.RED)
+        self.blue_hand_size = self.game_board.get_silo_count(Player.BLUE)
+        self.red_hand = self.initialise_hand(Player.RED)
+        self.blue_hand = self.initialise_hand(Player.BLUE)
 
         self.setup = 0
         self.win = 1
-        self.board_width = 30
-        self.board_height = 15
         self.number_of_factories = 5
         self.number_of_silos = 5
 
@@ -268,11 +245,12 @@ class Game():
         self.turn_change_event = threading.Event()
         self.game_start_event = threading.Event()
 
+        self.last_played = None
 
-    def initialise_hand(self):
+    def initialise_hand(self, player):
         hand = []
-        for _ in range(1, Game.STARTING_HAND_SIZE):
-            hand.append(self.get_card())
+        for _ in range(Game.STARTING_HAND_SIZE):
+            hand.append(self.get_random_card(player))
         return hand
 
     def get_cards(self):
@@ -292,26 +270,19 @@ class Game():
     def on_game_entry(self):
         self.playersingame += 1
         if self.playersingame == 1:
-            return {"player": 1, "ready": False}
+            return {"player": Player.RED, "ready": False}
         else:
             self.game_start_event.set()
             self.game_start_event.clear()
-            return {"player": -1, "ready": True}
+            return {"player": Player.BLUE, "ready": True}
 
     def await_game_start(self):
         print("Waiting for game start")
         self.game_start_event.wait()
         return {"ready": True}
 
-    def deck_builder(self):
-        card_holder = Cards()
-        card_holder.initaliseBombs()
-        for i in range(0,len(card_holder)):
-            for _ in range(0,card_holder[i].rarity):
-                self.deck.append(card_holder[i])
-
     def place_starting_board(self, player, factories, silos):
-        valid = self.place_factories(player, factories) or self.place_silos(player, silos)
+        valid = self.place_factories(player, factories) and self.place_silos(player, silos)
         if not valid:
             return {"valid": False}
 
@@ -330,18 +301,17 @@ class Game():
         self.turn_change_event.set()
         self.turn_change_event.clear()
 
-
     def place_factories(self, player, coords):
         if len(coords) != self.number_of_factories:
             return False
 
-        for i in range (0, len(coords)-1):
+        for i in range (0, len(coords)):
             x = coords[i][0]
             y = coords[i][1]
-            if(self.game_board.board[y][x].state != player):
+            if(self.game_board.board[x][y].state != player):
                 return False
             else:
-                self.game_board.board[y][x].building = 1
+                self.game_board.board[x][y].building = Building.FACTORY
 
         return True
 
@@ -349,69 +319,57 @@ class Game():
         if len(coords) != self.number_of_silos:
             return False
 
-        for i in range (0, len(coords)-1):
+        for i in range (0, len(coords)):
             x = coords[i][0]
             y = coords[i][1]
-            if(self.game_board.board[y][x].state != player):
+            if(self.game_board.board[x][y].state != player):
                 return False
             else:
-                self.game_board.board[y][x].building = 2
+                self.game_board.board[x][y].building = Building.SILO
 
         return True
 
-    def get_card(self):
+    def get_random_card(self):
         return random.choice(self.deck)
 
     def get_hand_size(self):
-        return self.game_board.get_silo(self.player)
-#getters
-    def get_cards(self):
-        data = []
-        for c in self.cards.bombs:
-            if not c:
-                continue
-            print(c.id)
-            carddata = {}
-            carddata["id"] = c.id
-            carddata["name"] = c.name
-            carddata["rarity"] = c.rarity
-            carddata["shape"] = c.shape
-            data.append(carddata)
-
-        return data
+        return self.game_board.get_silo_count(self.player)
 
     def get_game_state(self, player):
-        if player == -1:
-            hand_id = []
-            for i in range(0,len(self.blue_hand)-1):
-                bomb = self.blue_hand[i]
-                hand_id.append(bomb.id)
-        elif player == 1:
-            hand_id = []
-            for i in range(0,len(self.red_hand)-1):
-                bomb = self.red_hand[i]
-                hand_id.append(bomb.id)
-        else:
-            print("Error")
+        hand = self.red_hand if player == Player.RED else self.blue_hand
+        other_hand = self.red_hand if player != Player.RED else self.blue_hand
 
-        x = 0
-        int_board = [[self.game_board.get_int_board(player)[y][x] for y in range(15)] for x in range(30)]
-        return {"hand": hand_id, "board": int_board}
+        return {
+            "hand": [i.id for i in hand],
+            "otherHand": len(other_hand),
+            "board": self.game_board.get_serial_board(player),
+            "lastPlayed": self.last_played,
+        }
 
     def deck_builder(self):
         card_holder = Cards()
-        card_holder.initaliseBombs()
-        for i in range(0,len(card_holder.bombs)):
-            for _ in range(0,card_holder.bombs[i].rarity):
-                self.deck.append(card_holder.bombs[i])
+        card_holder.init_bombs()
+        for bomb in card_holder.bombs:
+            for _ in range(bomb.rarity):
+                self.deck.append(bomb)
 
-    def get_card(self):
-        return random.choice(self.deck)
+    def get_random_card(self, player):
+        possible = [
+            card for card in self.deck
+            if card.rarity >= self.game_board.get_factory_count(player)
+        ]
+
+        return random.choice(possible)
 
     def get_hand_options(self, player):
+        silos = self.game_board.get_silo_count(player)
+        hand = self.red_hand if player == Player.RED else self.blue_hand
+        if silos < len(hand):
+            return []
+
         hand_options = []
-        for i in range(0, self.game_board.get_factory(player)):
-            card = self.get_card()
+        for _ in range(self.game_board.get_factory_count(player)):
+            card = self.get_random_card(player)
             hand_options.append(card.id)
 
         self.offeredcards = hand_options
@@ -424,57 +382,33 @@ class Game():
         if cardid not in self.offeredcards:
             return False
 
-        if player == 1:
-            self.red_hand.append(self.cards.bombs[cardid-1])
+        if player == Player.RED:
+            self.red_hand.append(self.cards.bombs[cardid - 1])
             self.red_hand_size += 1
-        elif player == -1:
-            self.blue_hand.append(self.cards.bombs[cardid-1])
+        elif player == Player.BLUE:
+            self.blue_hand.append(self.cards.bombs[cardid - 1])
             self.blue_hand_size += 1
         else:
             return False
 
         return True
 
+    def remove_card(self, bomb_id, to_remove, player=None):
+        if player is None:
+            player = self.player
+        hand = self.red_hand if player == 1 else self.blue_hand
 
-    def get_number_of_factories(self):
-        return self.number_of_factories
-
-    def get_number_of_silos(self):
-        return self.number_of_silos
-
-    def remove_card(self, bomb_id, number):
-        if self.player == 1:
-            while number > 0:
-                i = 0
-                if self.red_hand[i].id == bomb_id:
-                    self.red_hand.pop(i)
-                    number += -1
-
-                i += 1
-        if self.player == -1:
-            while number > 0:
-                i = 0
-                if self.blue_hand[i].id == bomb_id:
-                    self.blue_hand.pop(i)
-                    number += -1
-                i += 1
+        for card in hand:
+            if to_remove == 0:
+                break
+            if card.id == bomb_id:
+                hand.remove(card)
+                to_remove -= 1
+        return to_remove
 
     def remove_from_hand(self, player, bomb_id):
-        if player == 1:
-            for b in self.red_hand:
-                if b.id == bomb_id:
-                    self.red_hand.remove(b)
-                    break
-            else:
-                return False
-        else:
-            for b in self.blue_hand:
-                if b.id == bomb_id:
-                    self.blue_hand.remove(b)
-                    break
-            else:
-                return False
-
+        if self.remove_card(bomb_id, 1, player):
+            return False
         return True
 
     def deploy_bomb(self, player, coord, bomb_id):
@@ -482,15 +416,16 @@ class Game():
             return False
 
         if self.remove_from_hand(player, bomb_id):
-            bomb = self.cards.bombs[bomb_id-1]
+            bomb = self.cards.bombs[bomb_id - 1]
             self.game_board.apply_bomb(bomb.shape, int(coord[0]), int(coord[1]))
+            self.last_played = bomb.id
             self.swap_turns()
             return True
         else:
             return False
 
     def swap_turns(self):
-        self.player = self.player * -1
+        self.player *= -1
         self.turn_change_event.set()
         print("Turn change")
         self.turn_change_event.clear()
@@ -505,21 +440,17 @@ class Game():
     def game_over(self):
         red_tiles = 0
         blue_tiles = 0
-        for i in range(0, self.board_height):
-            for j in range(0, self.board_width):
-                if self.game_board[i][j].get_state() == -1:
+        for x in range(self.board.height):
+            for y in range(self.board.width):
+                if self.game_board.board[x][y].state == State.BLUE:
                     blue_tiles += 1
-                if self.game_board[i][j].get_state() == 1:
+                if self.game_board.board[x][y].state == State.RED:
                     red_tiles += 1
         if red_tiles == 0:
-            self.win= 0
-        if blue_tiles ==0:
+            self.win = 0
+        if blue_tiles == 0:
             self.win = 0
 
-    def trigger_turn_change(self):
-        self.swap_turns()
-
-#need to write a function to get card.
 
 if __name__ == "__main__":
     g = Game()

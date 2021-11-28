@@ -8,7 +8,7 @@ class Tile:
 
     def get_building():
         return building
-    
+
     def get_state():
         return state
 

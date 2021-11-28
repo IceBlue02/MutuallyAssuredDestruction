@@ -1,9 +1,11 @@
 from datetime import MINYEAR
-from flask import Flask, json, render_template, Response, request, jsonify
+from flask import Flask, render_template, Response, request, jsonify
 from master import Game
+
 
 app = Flask(__name__)
 game = Game()
+
 
 @app.route('/')
 def main():
@@ -67,6 +69,7 @@ def choose_card():
     valid = game.choose_card(player, cardid)
     return jsonify({"outcome": valid})
 
+
 @app.route("/place_bomb", methods=["POST"])
 def place_bomb():
     player = int(request.json.get("player"))
@@ -74,15 +77,6 @@ def place_bomb():
     bombid = request.json.get("bombId")
     success = game.deploy_bomb(player, coords, bombid)
     return jsonify({"outcome": success})
-
-
-
-# TESTING ONLY
-
-@app.route("/trigger_turn_change")
-def TEST():
-    game.trigger_turn_change()
-    return "Hell Yeah"
 
 
 if __name__ == '__main__':
