@@ -254,7 +254,7 @@ class Game():
         self.turn_change_event = threading.Event()
         self.game_start_event = threading.Event()
 
-#start of game
+    #start of game
     def initialise_hand(self):
         hand = [None]
         for _ in range(0, self.game_board.get_factories(1)):
@@ -275,7 +275,7 @@ class Game():
         self.game_start_event.wait()
         return {"ready": True}
 
-    def deck_builder(self,deck):
+    def deck_builder(self):
         card_holder = Cards()
         card_holder.initaliseBombs()
         for i in range(0,len(card_holder)):
@@ -298,7 +298,8 @@ class Game():
                 return False
             else:
                 self.game_board[x][y].building = 2  
-#getters
+        #getters
+    
     def get_cards(self):
         data = []
         for c in self.cards.bombs:
@@ -367,17 +368,25 @@ class Game():
             hand_options.append(card.id)
         return hand_options
 
-    def deploy_bomb(self, bomb_id):
-        if self.player == -1:
-            for i in range(0, len(self.blue_hand)):
-                if self.blue_hand[i].id == bomb_id:
-                    return True
-            return False
-        if self.player == 1:
-            for i in range(0, len(self.red_hand)):
-                if self.red_hand[i].id == bomb_id:
-                    return True
-            return False
+
+    def deploy_bomb(self, player, coord, bomb_id):
+        if player == self.player:
+            if self.player == -1:
+                for i in range(0, len(self.blue_hand)):
+                    if self.blue_hand[i].id == bomb_id:
+                        bomb = self.cards.bombs[bomb_id-1]
+                        duplicate_bombs = 0
+                        for i in range(0, len(self.blue_hand)):
+                            if self.blue_hand[i].id == bomb_id:
+                                duplicate_bombs += 1
+                        if duplicate_bombs < bomb.rarity:
+                            self.game_board.apply_bomb(bomb.shape, int(coord[0]), int(coord[1]))
+                            Game.remove_card(bomb_id, bomb.rarity)
+                            self.swap_turns()
+                            return True
+                        else:
+                            return False
+                return False
    
    
     def main(self):

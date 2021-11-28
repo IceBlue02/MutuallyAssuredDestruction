@@ -461,28 +461,50 @@ class Game():
     def get_number_of_silos(self):
         return self.number_of_silos
 
+    def remove_card(self, bomb_id, number):
+        if self.player == 1:
+            while number > 0:
+                i = 0
+                if self.red_hand[i].id == bomb_id:
+                    self.red_hand.pop(i)
+                    number += -1
+                    continue
+                i += 1
+        if self.player == -1:
+            while number > 0:
+                i = 0
+                if self.blue_hand[i].id == bomb_id:
+                    self.blue_hand.pop(i)
+                    number += -1
+                    continue
+                i += 1
 
     def deploy_bomb(self, player, coord, bomb_id):
         if player == self.player:
-
             if self.player == -1:
                 for i in range(0, len(self.blue_hand)):
                     if self.blue_hand[i].id == bomb_id:
                         bomb = self.cards.bombs[bomb_id-1]
                         self.game_board.apply_bomb(bomb.shape, int(coord[0]), int(coord[1]))
+                        Game.remove_card(bomb_id, 1)
                         self.swap_turns()
                         return True
+     
                 return False
 
             if self.player == 1:
                 for i in range(0, len(self.red_hand)):
                     if self.red_hand[i].id == bomb_id:
                         bomb = self.cards.bombs[bomb_id-1]
-                        self.game_board.apply_bomb(bomb.shape, int(coord[0]), int(coord[1]))
-                        self.swap_turns()
-                        return True
+                        duplicate_bombs = 0
+                        for i in range(0, len(self.red_hand)):
+                            if self.red_hand[i].id == bomb_id:
+                                bomb = self.cards.bombs[bomb_id-1]
+                                self.game_board.apply_bomb(bomb.shape, int(coord[0]), int(coord[1]))
+                                Game.remove_card(bomb_id, 1)
+                                self.swap_turns()
+                                return True
                 return False
-        else:
             return False
 
 
