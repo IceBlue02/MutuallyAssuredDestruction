@@ -188,10 +188,16 @@ class Tile extends ImageEntity {
 }
 
 class Card extends ImageEntity {
-    constructor(game, rect, bombId, showFace = true) {
+    constructor(game, rect, bombId, showFace = true, red = true) {
         super(rect);
         this.bombId = bombId;
-        this.image = showFace ? game.cards[bombId].image : cardBackRed;
+        this.image = showFace
+            ? red
+                ? game.cards[bombId].imageRed
+                : game.cards[bombId].imageBlue
+            : red
+            ? cardBackRed
+            : cardBackBlue;
         this.animatePos = true;
         this.animateScale = true;
     }
@@ -206,7 +212,9 @@ class Hand {
         this.large = this.player === P1;
     }
     addCard(type, showFace = true) {
-        this.cards.push(new Card(this.game, rect(), type, showFace));
+        this.cards.push(
+            new Card(this.game, rect(), type, showFace, (this.game.player === P1) === (this.player === P1))
+        );
     }
     render() {
         const cardWidth = this.large ? (this.game.selectionActive ? 200 : 150) : 100;
@@ -315,7 +323,7 @@ class CardSelector {
     }
 
     addCard(type) {
-        const card = new Card(this.game, rect(), type);
+        const card = new Card(this.game, rect(), type, true, this.game.player === P1);
         this.cards.push(card);
         card.animateScale = false;
         card.setScale(0);
@@ -718,7 +726,8 @@ class Game {
             played.rect.x = 1920 / 2;
             played.rect.w = 0;
             await delay(500);
-            played.image = this.cards[played.bombId].image;
+            played.image =
+                this.playerTurn === P2 ? this.cards[played.bombId].imageRed : this.cards[played.bombId].imageBlue;
             played.rect.x = (1920 - 250) / 2;
             played.rect.w = 250;
             played.stepSpeed = 5;
@@ -727,7 +736,7 @@ class Game {
             await delay(1500);
         }
 
-        played.image = cardBackRed;
+        played.image = this.playerTurn === P2 ? cardBackRed : cardBackBlue;
         played.rect.x = 1920 / 2;
         played.rect.w = 0;
         played.stepSpeed = 5;
@@ -739,7 +748,11 @@ class Game {
     async initialSetup() {
         const cards = await get("get_cards");
         for (const card of cards) {
-            this.cards[card.id] = { ...card, image: asset(`cards/${card.id}.png`) };
+            this.cards[card.id] = {
+                ...card,
+                imageRed: asset(`cardsRed/${card.id}.png`),
+                imageBlue: asset(`cardsBlue/${card.id}.png`),
+            };
         }
 
         const { player, ready } = await post("connect");
@@ -859,6 +872,7 @@ class Game {
         if (!outcome) return;
         this.p1hand.cards = this.p1hand.cards.filter((x) => x !== this.selectedCard);
         this.playedCard = this.selectedCard;
+        await this.startNextTurn();
     }
 
     async startNextTurn() {
