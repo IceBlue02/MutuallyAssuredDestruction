@@ -3,7 +3,7 @@ import random
 import threading
 
 
-RARITY_BOMB_LOGIC = False
+RARITY_BOMB_LOGIC = True
 
 
 class Player(IntEnum):
@@ -104,10 +104,11 @@ class Board:
                     y_pos = y + (dx - 2)
                     if x_pos < 0 or y_pos < 0 or x_pos > 29 or y_pos > 14:
                         continue
-                    if  self.board[x_pos][y_pos].building == Building.SILO:
-                        self.lost_silo()
-                    else:
-                        self.board[x_pos][y_pos].state = State.GREY
+                    # if self.board[x_pos][y_pos].building == Building.SILO:
+                    # self.lost_silo()
+                    # else:
+                    self.board[x_pos][y_pos].state = State.GREY
+
     def get_destroyed_counts(self):
         counts = [0, 0]
         for y, col in enumerate(self.board):
@@ -119,7 +120,6 @@ class Board:
                         counts[0] += 1
 
         return counts
-
 
 
 class Bomb:
@@ -347,14 +347,14 @@ class Game:
         self.game_board = Board()
         self.red_hand_size = self.game_board.get_silo_count(Player.RED)
         self.blue_hand_size = self.game_board.get_silo_count(Player.BLUE)
-        self.red_hand = self.initialise_hand(Player.RED)
-        self.blue_hand = self.initialise_hand(Player.BLUE)
 
         self.setup = 0
         self.win = False
         self.number_of_factories = 5
         self.number_of_silos = 5
 
+        self.red_hand = self.initialise_hand(Player.RED)
+        self.blue_hand = self.initialise_hand(Player.BLUE)
         self.cards = Cards()
         self.offeredcards = []
 
@@ -462,7 +462,7 @@ class Game:
             "otherHand": len(other_hand),
             "board": self.game_board.get_serial_board(player),
             "lastPlayed": self.last_played,
-            "destroyedCount": self.game_board.get_destroyed_counts()
+            "destroyedCount": self.game_board.get_destroyed_counts(),
         }
 
     def deck_builder(self):
@@ -477,7 +477,13 @@ class Game:
             card
             for card in self.deck
             if (not RARITY_BOMB_LOGIC)
-            or (card.rarity <= self.game_board.get_factory_count(player))
+            or (
+                card.rarity
+                <= (
+                    self.game_board.get_factory_count(player)
+                    or self.number_of_factories
+                )
+            )
         ]
         if not possible:
             return None
@@ -523,37 +529,47 @@ class Game:
             player = self.player
         hand = self.red_hand if player == Player.RED else self.blue_hand
 
+        if [i.id for i in hand].count(bomb_id) < to_remove:
+            return False
+
         for card in hand:
             if to_remove == 0:
                 break
             if card.id == bomb_id:
                 hand.remove(card)
                 to_remove -= 1
-        return to_remove
+        return True
 
-    def deploy_bomb(self, player, coord, bomb_id):
+    def deploy_bomb(self, player, coord, bomb_id, extra):
         if player != self.player:
             return False
+
+        bomb = self.cards.bombs[bomb_id - 1]
 
         if RARITY_BOMB_LOGIC:
             hand = self.red_hand if player == Player.RED else self.blue_hand
 
-            bomb = self.cards.bombs[bomb_id - 1]
-            if len([i for i in hand if i.id == bomb_id]) >= bomb.rarity:
-                remove_count = bomb.rarity
-            else:
+            if len(extra) < bomb.rarity - 1:
                 return False
+            if not all([self.cards.bombs[i - 1].rarity >= bomb.rarity for i in extra]):
+                return False
+
+            to_remove = extra + [bomb_id]
+            hand_ids = [i.id for i in hand]
+            for i in set(to_remove):
+                if hand_ids.count(i) < to_remove.count(i):
+                    return False
+
+            for i in set(to_remove):
+                self.remove_card(i, to_remove.count(i), player)
         else:
-            remove_count = 1
+            if not self.remove_card(bomb_id, 1, player):
+                return False
 
-        if not self.remove_card(bomb_id, remove_count, player):
-            bomb = self.cards.bombs[bomb_id - 1]
-            self.game_board.apply_bomb(bomb.shape, int(coord[0]), int(coord[1]))
-            self.last_played = bomb.id
-            self.swap_turns()
-            return True
-
-        return False
+        self.game_board.apply_bomb(bomb.shape, int(coord[0]), int(coord[1]))
+        self.last_played = bomb.id
+        self.swap_turns()
+        return True
 
     def swap_turns(self):
         self.player *= -1
@@ -571,7 +587,6 @@ class Game:
     def lost_silo(self):
         hand = self.red_hand if self.player == Player.RED else self.blue_hand
         hand.pop(random.randrange(0, len(hand)))
-
 
     def game_over(self):
         red_tiles = 0
@@ -592,7 +607,8 @@ class Game:
         if len(hand) == 0:
             if self.game_board.get_factory_count(self.player) == 0:
                 self.win = True
-                return self.player 
+                return self.player
+
 
 if __name__ == "__main__":
     g = Game()

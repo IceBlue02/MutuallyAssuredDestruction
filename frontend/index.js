@@ -204,8 +204,6 @@ class Hand {
 
         this.player = player;
         this.large = this.player === P1;
-
-        this.selectedCard = null;
     }
     addCard(type, showFace = true) {
         this.cards.push(new Card(this.game, rect(), type, showFace));
@@ -219,12 +217,15 @@ class Hand {
         const cardOverlap = cardWidth / ((this.cards.length + 5) / this.cards.length);
         const hoverXOffset = cardOverlap / 2;
         const hoverYOffset = cardWidth * 0.2;
-        const selectedYOffset = cardWidth / 2;
+        const selectedYOffset = cardWidth * 0.5;
+        const extraYOffset = cardWidth * 0.4;
+        const hoverSelectedYOffset = cardWidth * 0.35;
 
         let x = isP1 ? 75 : 1920 - 75 - cardWidth;
         let y = 1080 - cardHeight - 25;
         let hoverCard = null,
-            selectedCard = null,
+            selectedCards = [],
+            extraCards = [],
             newSelectedCard = null;
         this.cards.forEach((card, n) => {
             const topCard = !isP1 ? n === 0 : n === this.cards.length - 1;
@@ -240,14 +241,28 @@ class Hand {
                         cardWidth - (topCard ? 0 : hoverXOffset),
                         cardHeight + hoverYOffset
                     )
-                );
-            const selected = this.game.selectionActive && isP1 && card === this.game.selectedCard;
+                ) &&
+                (!this.game.selectedCard ||
+                    this.game.cards[card.bombId].rarity >= this.game.cards[this.game.selectedCard.bombId].rarity) &&
+                (!this.game.selectionReady ||
+                    this.game.selectedCard === card ||
+                    this.game.extraSelected.includes(card));
+            const selected =
+                this.game.selectionActive &&
+                isP1 &&
+                (card === this.game.selectedCard || this.game.extraSelected.includes(card));
 
             card.rect = rect(x, y, cardWidth, cardHeight);
 
-            if (selected) {
+            if (selected && hover) {
+                card.rect.y -= hoverSelectedYOffset;
+                selectedCards.push(card);
+            } else if (this.game.extraSelected.includes(card)) {
+                card.rect.y -= extraYOffset;
+                extraCards.push(card);
+            } else if (selected) {
                 card.rect.y -= selectedYOffset;
-                selectedCard = card;
+                selectedCards.push(card);
             } else if (hover) {
                 card.rect.y -= hoverYOffset;
                 hoverCard = card;
@@ -276,10 +291,12 @@ class Hand {
         });
 
         if (newSelectedCard !== null) {
-            if (newSelectedCard === this.game.selectedCard) this.game.selectCard(null);
+            if (newSelectedCard === this.game.selectedCard || this.game.extraSelected.includes(newSelectedCard))
+                this.game.unselectCard(newSelectedCard);
             else this.game.selectCard(newSelectedCard);
         }
-        if (selectedCard) selectedCard.render();
+        extraCards.forEach((x) => x.render());
+        selectedCards.forEach((x) => x.render());
         if (hoverCard) hoverCard.render();
     }
 }
@@ -440,20 +457,20 @@ class Grid {
                 tile.render();
                 const hover =
                     collideRect(state.mouse, tile.rect) &&
-                    (this.game.selectedCard ||
+                    (this.game.selectionReady ||
                         ((this.game.factoryPlacer.active || this.game.siloPlacer.active) &&
                             tile.type === this.game.player));
                 if (hover) hoverTile = [x, y];
                 tile.setScale(1);
 
-                if (hover && this.game.selectedCard && state.wasClickThisFrame) this.game.playCard(x, y);
+                if (hover && this.game.selectionReady && state.wasClickThisFrame) this.game.playCard(x, y);
                 if (hover && this.game.factoryPlacer.active && state.wasClickThisFrame) this.game.placeFactory(x, y);
                 if (hover && this.game.siloPlacer.active && state.wasClickThisFrame) this.game.placeSilo(x, y);
             });
         });
 
         const hovers = [];
-        if (hoverTile && this.game.selectedCard !== null) {
+        if (hoverTile && this.game.selectionReady) {
             for (let dx = 0; dx < 5; dx++) {
                 for (let dy = 0; dy < 5; dy++) {
                     if (this.game.selectedBombShape[dy][dx]) {
@@ -605,7 +622,7 @@ class Game {
     constructor() {
         this.cards = {};
 
-        this.destroyedCount = []
+        this.destroyedCount = [];
 
         this.turn = 0;
         this.playerTurn = P1;
@@ -614,6 +631,7 @@ class Game {
         this.selectionActive = false;
 
         this.selectedCard = null;
+        this.extraSelected = [];
         this.animatingCard = null;
 
         state.canvas = document.getElementById("root");
@@ -627,7 +645,9 @@ class Game {
     }
 
     async updateBoardAndHands(doHand = true) {
-        const { board, hand, otherHand, lastPlayed, destroyedCount } = await post("get_game_state", { player: this.player });
+        const { board, hand, otherHand, lastPlayed, destroyedCount } = await post("get_game_state", {
+            player: this.player,
+        });
 
         const updateBoard = () => {
             this.grid.entities = [];
@@ -811,11 +831,14 @@ class Game {
             player: this.player,
             coords: [x, y],
             bombId: this.selectedCard.bombId,
+            extra: this.extraSelected.map((x) => x.bombId),
         });
         if (!outcome) return;
         this.p1hand.cards = this.p1hand.cards.filter((x) => x !== this.selectedCard);
         this.playedCard = this.selectedCard;
         this.selectedCard = null;
+        this.extraSelected = [];
+        this.selectionReady = false;
         this.selectionActive = false;
         await this.updateBoardAndHands(false);
 
@@ -847,21 +870,50 @@ class Game {
         this.p1hand.cards.push(card);
         this.cardSelector.active = false;
         this.selectedCard = null;
+        this.extraSelected = [];
+        this.selectionReady = false;
         this.selectionActive = true;
     }
 
+    unselectCard(card) {
+        this.selectionReady = false;
+        if (this.extraSelected.includes(card)) {
+            this.extraSelected.splice(this.extraSelected.indexOf(card), 1);
+            return;
+        }
+        const match = this.extraSelected.find((x) => x.bombId === this.selectedCard.bombId);
+        if (!match) {
+            this.selectedCard = null;
+            this.extraSelected = [];
+            return;
+        }
+        this.extraSelected.splice(this.extraSelected.indexOf(card), 1);
+        this.selectedCard = match;
+    }
+
     selectCard(card) {
-        this.selectedCard = card;
-        if (card) this.selectedBombShape = this.cards[card.bombId].shape;
+        if (this.selectionReady) return;
+        if (!this.selectedCard) {
+            this.selectedCard = card;
+            this.selectedBombShape = this.cards[card.bombId].shape;
+            if (this.cards[card.bombId].rarity === 1) this.selectionReady = true;
+            return;
+        }
+
+        if (this.cards[card.bombId].rarity < this.cards[this.selectedCard.bombId].rarity) return;
+
+        if (this.selectedCard === card || this.extraSelected.includes(card)) return;
+        this.extraSelected.push(card);
+        this.selectionReady = this.extraSelected.length === this.cards[this.selectedCard.bombId].rarity - 1;
     }
 
     drawScoreboard() {
         state.ctx.fillStyle = "#fff";
         state.ctx.font = `72px Arial`;
-        const sbdtext = this.destroyedCount[1].toString() + '-' + this.destroyedCount[0].toString()
-        
+        const sbdtext = this.destroyedCount[1].toString() + "-" + this.destroyedCount[0].toString();
+
         drawText(1920 / 2 - 100, 900, this.destroyedCount[1].toString(), 100, RED);
-        drawText(1920 / 2, 900, '-', 100, `rgb(255, 255, 255)`);
+        drawText(1920 / 2, 900, "-", 100, `rgb(255, 255, 255)`);
         drawText(1920 / 2 + 100, 900, this.destroyedCount[0].toString(), 100, BLUE);
     }
 
@@ -910,7 +962,7 @@ class Game {
         state.ctx.font = `10px Arial`;
         state.ctx.fillText(`${(1 / this.dt).toFixed(2)} FPS`, 8, 15);
 
-        this.drawScoreboard()
+        this.drawScoreboard();
 
         state.wasClickThisFrame = false;
         requestAnimationFrame(() => this.render());

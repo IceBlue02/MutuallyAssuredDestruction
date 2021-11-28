@@ -40,7 +40,8 @@ def await_turn():
     def waitforturn():
         while True:
             playercode = game.await_turn_change()
-            yield "data: " + '{"player": ' + str(playercode) + "}\n\n"
+            yield "data: " + '{"player": ' + str(int(playercode)) + "}\n\n"
+
     return Response(waitforturn(), mimetype="text/event-stream")
 
 
@@ -68,21 +69,21 @@ def choose_card():
 @app.route("/place_bomb", methods=["POST"])
 def place_bomb():
     player = int(request.json.get("player"))
-    coords = request.json.get("coords") # 2 length list
-    bombid = request.json.get("bombId")
-    success = game.deploy_bomb(player, coords, bombid)
+    coords = request.json.get("coords")  # 2 length list
+    bomb_id = request.json.get("bombId")
+    extra = request.json.get("extra")
+    success = game.deploy_bomb(player, coords, bomb_id, extra)
     return jsonify({"outcome": success})
 
 
-
-@app.route('/')
-@app.route('/<path:static>')
+@app.route("/")
+@app.route("/<path:static>")
 def main(static=None):
     if static is None:
         static = "index.html"
     return send_from_directory("../frontend", static)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     app.debug = True
     app.run(threaded=True, host="0.0.0.0", port=5000)
