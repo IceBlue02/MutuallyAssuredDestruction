@@ -542,17 +542,17 @@ class TurnIndicator {
 }
 
 class Factory extends ImageEntity {
-    constructor(rect) {
+    constructor(rect, rubble = false) {
         super(rect);
-        this.image = asset("factory.png");
+        this.image = asset(rubble ? "factoryRubble.png" : "factory.png");
         this.animateScale = true;
     }
 }
 
 class Silo extends ImageEntity {
-    constructor(rect) {
+    constructor(rect, rubble) {
         super(rect);
-        this.image = asset("silo.png");
+        this.image = asset(rubble ? "siloRubble.png" : "silo.png");
         this.animateScale = true;
     }
 }
@@ -636,10 +636,10 @@ class Game {
                         case BUILDING_EMPTY:
                             break;
                         case BUILDING_SILO:
-                            this.grid.entities.push([[x, y], new Silo(rect())]);
+                            this.grid.entities.push([[x, y], new Silo(rect(), player === TILE_GREY)]);
                             break;
                         case BUILDING_FACTORY:
-                            this.grid.entities.push([[x, y], new Factory(rect())]);
+                            this.grid.entities.push([[x, y], new Factory(rect(), player === TILE_GREY)]);
                             break;
                     }
                 });
@@ -867,8 +867,8 @@ class Game {
 
         this.grid.render();
 
-        renderStats(0);
-        renderStats(1);
+        // renderStats(0);
+        // renderStats(1);
 
         this.p1hand.render();
         this.p2hand.render();
