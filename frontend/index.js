@@ -659,6 +659,8 @@ class Game {
         this.selectedCard = null;
         this.extraSelected = [];
         this.animatingCard = null;
+        this.factoriesremaining = [0, 0];
+        this.silosremaining = [0, 0]
 
         state.canvas = document.getElementById("root");
         /** @type {CanvasRenderingContext2D} */
@@ -677,6 +679,9 @@ class Game {
 
         const updateBoard = () => {
             this.grid.entities = [];
+            this.silosremaining = [0, 0];
+            this.factoriesremaining = [0, 0];
+
             board.forEach((row, x) => {
                 row.forEach(([player, building], y) => {
                     this.grid.setTile(x, y, player);
@@ -685,10 +690,25 @@ class Game {
                             break;
                         case BUILDING_SILO:
                             this.grid.entities.push([[x, y], new Silo(rect(), player === TILE_GREY)]);
-                            break;
+                            if (!player == TILE_GREY) {
+                                if (x < 15) {
+                                    this.silosremaining[0]++
+                                } else {
+                                    this.silosremaining[1]++
+                                }
+                                break;
+                            }
+                            
                         case BUILDING_FACTORY:
                             this.grid.entities.push([[x, y], new Factory(rect(), player === TILE_GREY)]);
-                            break;
+                            if (!player == TILE_GREY) {
+                                if (x < 15) {
+                                    this.factoriesremaining[0]++
+                                } else {
+                                    this.factoriesremaining[1]++
+                                }
+                                break;
+                            }
                     }
                 });
             });
@@ -948,13 +968,43 @@ class Game {
     }
 
     drawScoreboard() {
-        state.ctx.fillStyle = "#fff";
-        state.ctx.font = `72px Arial`;
         const sbdtext = this.destroyedCount[1].toString() + "-" + this.destroyedCount[0].toString();
 
         drawText(1920 / 2 - 100, 900, this.destroyedCount[1].toString(), 100, RED);
         drawText(1920 / 2, 900, "-", 100, `rgb(255, 255, 255)`);
         drawText(1920 / 2 + 100, 900, this.destroyedCount[0].toString(), 100, BLUE);
+    }
+
+    drawpanels() {
+        if (this.player == P1) {
+            const paneRect = rect(0, 200, 180, 300);
+            drawRect(paneRect, RED);
+            let text = "Factories"
+            drawText(66, 250, text, 24, "#FFF");
+            text = "Remaining: " + this.factoriesremaining[0].toString()
+            drawText(85, 280, text, 24, "#FFF");
+
+            text = "Silos"
+            drawText(42, 320, text, 24, "#FFF");
+            text = "Remaining: " + this.silosremaining[0].toString()
+            drawText(85, 350, text, 24, "#FFF");
+        } else {
+            const paneRect = rect(1740, 200, 180, 300);
+            drawRect(paneRect, BLUE);
+            let text = "Factories"
+            drawText(1806, 250, text, 24, "#FFF");
+            text = "Remaining: " + this.factoriesremaining[1].toString()
+            drawText(1825, 280, text, 24, "#FFF");
+
+            text = "Silos"
+            drawText(1782, 320, text, 24, "#FFF");
+            text = "Remaining: " + this.silosremaining[1].toString()
+            drawText(1825, 350, text, 24, "#FFF");
+        }
+        
+
+                
+
     }
 
     updateTiming() {
@@ -1005,6 +1055,7 @@ class Game {
         state.ctx.fillText(`${(1 / this.dt).toFixed(2)} FPS`, 8, 15);
 
         this.drawScoreboard();
+        this.drawpanels();
 
         state.wasClickThisFrame = false;
         requestAnimationFrame(() => this.render());
