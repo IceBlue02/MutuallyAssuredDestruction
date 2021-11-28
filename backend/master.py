@@ -394,7 +394,7 @@ class Game():
             for i in range(0,len(self.blue_hand)-1):
                 bomb = self.blue_hand[i]
                 hand_id.append(bomb.id)
-        elif self.player == 1:
+        elif player == 1:
             hand_id = []
             for i in range(0,len(self.red_hand)-1):
                 bomb = self.red_hand[i]
@@ -450,29 +450,54 @@ class Game():
     def get_number_of_silos(self):
         return self.number_of_silos
 
+    def remove_card(self, bomb_id, number):
+        if self.player == 1:
+            while number > 0:
+                i = 0
+                if self.red_hand[i].id == bomb_id:
+                    self.red_hand.pop(i)
+                    number += -1
+                    
+                i += 1
+        if self.player == -1:
+            while number > 0:
+                i = 0
+                if self.blue_hand[i].id == bomb_id:
+                    self.blue_hand.pop(i)
+                    number += -1
+                i += 1
+
+    def remove_from_hand(self, player, bomb_id):
+        removed = False
+        if player == 1:
+            for b in self.red_hand:
+                if b.id == bomb_id:
+                    self.red_hand.remove(b)
+                    removed = True
+                    break
+
+        else:
+            for b in self.blue_hand:
+                if b.id == bomb_id:
+                    self.blue_hand.remove(b)
+                    removed = True
+                    break
+        
+        return removed
+
+
 
     def deploy_bomb(self, player, coord, bomb_id):
         if player != self.player:
             return False
-
-        if self.player == -1:
-            for i in range(0, len(self.blue_hand)):
-                if self.blue_hand[i].id == bomb_id:
-                    bomb = self.cards.bombs[bomb_id-1]
-                    self.game_board.apply_bomb(bomb.shape, int(coord[0]), int(coord[1]))
-                    self.swap_turns()
-                    return True
+  
+        if self.remove_from_hand(player, bomb_id):
+            bomb = self.cards.bombs[bomb_id-1]
+            self.game_board.apply_bomb(bomb.shape, int(coord[0]), int(coord[1]))
+            self.swap_turns()
+            return True
+        else:
             return False
-
-        if self.player == 1:
-            for i in range(0, len(self.red_hand)):
-                if self.red_hand[i].id == bomb_id:
-                    bomb = self.cards.bombs[bomb_id-1]
-                    self.game_board.apply_bomb(bomb.shape, int(coord[0]), int(coord[1]))
-                    self.swap_turns()
-                    return True
-            return False
-        return True
 
 
 
