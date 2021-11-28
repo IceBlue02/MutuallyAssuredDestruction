@@ -342,8 +342,7 @@ class Game:
     def __init__(self):
         self.deck = []
         self.deck_builder()
-        self.player = 1
-
+        self.player = Player.RED
         self.game_board = Board()
         self.red_hand_size = self.game_board.get_silo_count(Player.RED)
         self.blue_hand_size = self.game_board.get_silo_count(Player.BLUE)
@@ -351,7 +350,7 @@ class Game:
         self.blue_hand = self.initialise_hand(Player.BLUE)
 
         self.setup = 0
-        self.win = 1
+        self.win = False
         self.number_of_factories = 5
         self.number_of_silos = 5
 
@@ -571,17 +570,23 @@ class Game:
     def game_over(self):
         red_tiles = 0
         blue_tiles = 0
-        for x in range(self.board.height):
-            for y in range(self.board.width):
+        for x in range(self.game_board.HEIGHT):
+            for y in range(self.game_board.WIDTH):
                 if self.game_board.board[x][y].state == State.BLUE:
                     blue_tiles += 1
                 if self.game_board.board[x][y].state == State.RED:
                     red_tiles += 1
         if red_tiles == 0:
-            self.win = 0
+            self.win = True
+            return Player.Red
         if blue_tiles == 0:
-            self.win = 0
-
-
+            self.win = True
+            return Player.Blue
+        hand = self.red_hand if self.player == Player.RED else self.blue_han
+        if len(hand) == 0:
+            if self.game_board.get_factory_count(self.player) == 0:
+                self.win = True
+                return self.player 
+        
 if __name__ == "__main__":
     g = Game()
