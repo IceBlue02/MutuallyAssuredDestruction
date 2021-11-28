@@ -67,7 +67,7 @@ class Board:
                 else:
                     board[x][y] = Tile(
                         State.BLUE if player == Player.RED else State.RED,
-                        Building.EMPTY
+                        Building.EMPTY,
                     ).serial
         return board
 
@@ -75,17 +75,21 @@ class Board:
         factories = 0
         for x in range(self.width):
             for y in range(self.height):
-                if (self.board[x][y].building == Building.FACTORY
-                        and self.board[x][y].state == player):
+                if (
+                    self.board[x][y].building == Building.FACTORY
+                    and self.board[x][y].state == player
+                ):
                     factories += 1
         return factories
 
     def get_silo_count(self, player):
         silo = 0
-        for x in range (self.width):
+        for x in range(self.width):
             for y in range(self.height):
-                if (self.board[x][y].building == Building.SILO
-                        and self.board[x][y].state == player):
+                if (
+                    self.board[x][y].building == Building.SILO
+                    and self.board[x][y].state == player
+                ):
                     silo += 1
         return silo
 
@@ -116,107 +120,205 @@ RARITY_UNCOMMON = 3
 RARITY_AVERAGE = 2
 RARITY_COMMON = 1
 
+
 class Cards:
     def __init__(self):
         self.bombs = []
         self.init_bombs()
 
     def init_bombs(self):
-        self.bombs.append(Bomb(1,"Square", RARITY_AVERAGE, "Simple, but effective.", [
-            [1,1,1,1,0],
-            [1,1,1,1,0],
-            [1,1,1,1,0],
-            [1,1,1,1,0],
-            [0,0,0,0,0],
-        ]))
+        self.bombs.append(
+            Bomb(
+                1,
+                "Square",
+                RARITY_AVERAGE,
+                "Simple, but effective.",
+                [
+                    [1, 1, 1, 1, 0],
+                    [1, 1, 1, 1, 0],
+                    [1, 1, 1, 1, 0],
+                    [1, 1, 1, 1, 0],
+                    [0, 0, 0, 0, 0],
+                ],
+            )
+        )
 
-        self.bombs.append(Bomb(2,"Circle", RARITY_RARE, "The circle of (no) life.", [
-            [0,1,1,1,0],
-            [1,1,1,1,1],
-            [1,1,1,1,1],
-            [1,1,1,1,1],
-            [0,1,1,1,0],
-        ]))
+        self.bombs.append(
+            Bomb(
+                2,
+                "Circle",
+                RARITY_RARE,
+                "The circle of (no) life.",
+                [
+                    [0, 1, 1, 1, 0],
+                    [1, 1, 1, 1, 1],
+                    [1, 1, 1, 1, 1],
+                    [1, 1, 1, 1, 1],
+                    [0, 1, 1, 1, 0],
+                ],
+            )
+        )
 
-        self.bombs.append(Bomb(3,"Bomb",RARITY_COMMON, "Diamonds are forever. So is the damage left by this.", [
-            [0,0,1,0,0],
-            [0,1,1,1,0],
-            [1,1,1,1,1],
-            [0,1,1,1,0],
-            [0,0,1,0,0],
-        ]))
+        self.bombs.append(
+            Bomb(
+                3,
+                "Bomb",
+                RARITY_COMMON,
+                "Diamonds are forever. So is the damage left by this.",
+                [
+                    [0, 0, 1, 0, 0],
+                    [0, 1, 1, 1, 0],
+                    [1, 1, 1, 1, 1],
+                    [0, 1, 1, 1, 0],
+                    [0, 0, 1, 0, 0],
+                ],
+            )
+        )
 
-        self.bombs.append(Bomb(4,"Target",RARITY_RARE, "You can't miss.", [
-            [1,1,1,1,1],
-            [1,0,0,0,1],
-            [1,0,1,0,1],
-            [1,0,0,0,1],
-            [1,1,1,1,1],
-        ]))
+        self.bombs.append(
+            Bomb(
+                4,
+                "Target",
+                RARITY_RARE,
+                "You can't miss.",
+                [
+                    [1, 1, 1, 1, 1],
+                    [1, 0, 0, 0, 1],
+                    [1, 0, 1, 0, 1],
+                    [1, 0, 0, 0, 1],
+                    [1, 1, 1, 1, 1],
+                ],
+            )
+        )
 
-        self.bombs.append(Bomb(5,"wwwDotBomb ", RARITY_COMMON,"...................", [
-            [1,0,1,0,1],
-            [0,1,0,1,0],
-            [1,0,1,0,1],
-            [0,1,0,1,0],
-            [1,0,1,0,1],
-        ]))
+        self.bombs.append(
+            Bomb(
+                5,
+                "wwwDotBomb ",
+                RARITY_COMMON,
+                "...................",
+                [
+                    [1, 0, 1, 0, 1],
+                    [0, 1, 0, 1, 0],
+                    [1, 0, 1, 0, 1],
+                    [0, 1, 0, 1, 0],
+                    [1, 0, 1, 0, 1],
+                ],
+            )
+        )
 
-        self.bombs.append(Bomb(6,"X", RARITY_COMMON,"It marks the spot. And hits it.", [
-            [1,0,0,0,1],
-            [0,1,0,1,0],
-            [0,0,1,0,0],
-            [0,1,0,1,0],
-            [1,0,0,0,1],
-        ]))
+        self.bombs.append(
+            Bomb(
+                6,
+                "X",
+                RARITY_COMMON,
+                "It marks the spot. And hits it.",
+                [
+                    [1, 0, 0, 0, 1],
+                    [0, 1, 0, 1, 0],
+                    [0, 0, 1, 0, 0],
+                    [0, 1, 0, 1, 0],
+                    [1, 0, 0, 0, 1],
+                ],
+            )
+        )
 
-        self.bombs.append(Bomb(7,"H0",RARITY_COMMON, "Can you add the H0,Bomb to the game?' 'Yeah sure I got you'", [
-            [1,0,0,0,1],
-            [1,0,0,0,1],
-            [1,1,1,1,1],
-            [1,0,0,0,1],
-            [1,0,0,0,1],
-        ]))
+        self.bombs.append(
+            Bomb(
+                7,
+                "H0",
+                RARITY_COMMON,
+                "Can you add the H0,Bomb to the game?' 'Yeah sure I got you'",
+                [
+                    [1, 0, 0, 0, 1],
+                    [1, 0, 0, 0, 1],
+                    [1, 1, 1, 1, 1],
+                    [1, 0, 0, 0, 1],
+                    [1, 0, 0, 0, 1],
+                ],
+            )
+        )
 
-        self.bombs.append(Bomb(8,"P0", RARITY_AVERAGE,"Not sure why you'd make a bomb like this, but there you go.", [
-            [1,1,1,1,0],
-            [1,1,1,1,0],
-            [1,1,1,1,0],
-            [1,0,0,0,0],
-            [1,0,0,0,0],
-        ]))
+        self.bombs.append(
+            Bomb(
+                8,
+                "P0",
+                RARITY_AVERAGE,
+                "Not sure why you'd make a bomb like this, but there you go.",
+                [
+                    [1, 1, 1, 1, 0],
+                    [1, 1, 1, 1, 0],
+                    [1, 1, 1, 1, 0],
+                    [1, 0, 0, 0, 0],
+                    [1, 0, 0, 0, 0],
+                ],
+            )
+        )
 
-        self.bombs.append(Bomb(9,"Cherry", RARITY_SUPER_RARE, "Yep, it's a pair of Cherries. ", [
-            [0,0,1,0,0],
-            [0,0,1,0,0],
-            [0,0,1,0,0],
-            [1,1,0,1,1],
-            [1,1,0,1,1],
-        ]))
+        self.bombs.append(
+            Bomb(
+                9,
+                "Cherry",
+                RARITY_SUPER_RARE,
+                "Yep, it's a pair of Cherries. ",
+                [
+                    [0, 0, 1, 0, 0],
+                    [0, 0, 1, 0, 0],
+                    [0, 0, 1, 0, 0],
+                    [1, 1, 0, 1, 1],
+                    [1, 1, 0, 1, 1],
+                ],
+            )
+        )
 
-        self.bombs.append(Bomb(10,"e", RARITY_RARE, "2.71828182845904523536028747135", [
-            [1,1,1,1,1],
-            [1,0,0,0,1],
-            [1,1,1,1,1],
-            [1,0,0,0,0],
-            [1,1,1,1,1],
-        ]))
+        self.bombs.append(
+            Bomb(
+                10,
+                "e",
+                RARITY_RARE,
+                "2.71828182845904523536028747135",
+                [
+                    [1, 1, 1, 1, 1],
+                    [1, 0, 0, 0, 1],
+                    [1, 1, 1, 1, 1],
+                    [1, 0, 0, 0, 0],
+                    [1, 1, 1, 1, 1],
+                ],
+            )
+        )
 
-        self.bombs.append(Bomb(11,"A0",RARITY_COMMON, "I know I'll be A0,O, A0,O0,K.", [
-            [0,0,1,0,0],
-            [0,1,0,1,0],
-            [0,1,1,1,0],
-            [1,0,0,0,1],
-            [1,0,0,0,1],
-        ]))
+        self.bombs.append(
+            Bomb(
+                11,
+                "A0",
+                RARITY_COMMON,
+                "I know I'll be A0,O, A0,O0,K.",
+                [
+                    [0, 0, 1, 0, 0],
+                    [0, 1, 0, 1, 0],
+                    [0, 1, 1, 1, 0],
+                    [1, 0, 0, 0, 1],
+                    [1, 0, 0, 0, 1],
+                ],
+            )
+        )
 
-        self.bombs.append(Bomb(12, "ENGLAND",RARITY_COMMON, "RULE BRITANNIA, BRITANNIA RULES THE WAVES", [
-            [0,0,1,0,0],
-            [0,0,1,0,0],
-            [1,1,1,1,1],
-            [0,0,1,0,0],
-            [0,0,1,0,0],
-        ]))
+        self.bombs.append(
+            Bomb(
+                12,
+                "ENGLAND",
+                RARITY_COMMON,
+                "RULE BRITANNIA, BRITANNIA RULES THE WAVES",
+                [
+                    [0, 0, 1, 0, 0],
+                    [0, 0, 1, 0, 0],
+                    [1, 1, 1, 1, 1],
+                    [0, 0, 1, 0, 0],
+                    [0, 0, 1, 0, 0],
+                ],
+            )
+        )
+
 
 class Game:
     STARTING_HAND_SIZE = 5
@@ -282,7 +384,9 @@ class Game:
         return {"ready": True}
 
     def place_starting_board(self, player, factories, silos):
-        valid = self.place_factories(player, factories) and self.place_silos(player, silos)
+        valid = self.place_factories(player, factories) and self.place_silos(
+            player, silos
+        )
         if not valid:
             return {"valid": False}
 
@@ -305,10 +409,10 @@ class Game:
         if len(coords) != self.number_of_factories:
             return False
 
-        for i in range (0, len(coords)):
+        for i in range(0, len(coords)):
             x = coords[i][0]
             y = coords[i][1]
-            if(self.game_board.board[x][y].state != player):
+            if self.game_board.board[x][y].state != player:
                 return False
             else:
                 self.game_board.board[x][y].building = Building.FACTORY
@@ -319,10 +423,10 @@ class Game:
         if len(coords) != self.number_of_silos:
             return False
 
-        for i in range (0, len(coords)):
+        for i in range(0, len(coords)):
             x = coords[i][0]
             y = coords[i][1]
-            if(self.game_board.board[x][y].state != player):
+            if self.game_board.board[x][y].state != player:
                 return False
             else:
                 self.game_board.board[x][y].building = Building.SILO
@@ -355,7 +459,8 @@ class Game:
 
     def get_random_card(self, player):
         possible = [
-            card for card in self.deck
+            card
+            for card in self.deck
             if card.rarity >= self.game_board.get_factory_count(player)
         ]
 
