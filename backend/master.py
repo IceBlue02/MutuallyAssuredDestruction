@@ -571,6 +571,12 @@ class Game:
         self.swap_turns()
         return True
 
+    def skip_turn(self, player):
+        if player != self.player:
+            return False
+        self.swap_turns()
+        return True
+
     def swap_turns(self):
         self.player *= -1
         self.turn_change_event.set()

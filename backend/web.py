@@ -1,5 +1,5 @@
 from datetime import MINYEAR
-from flask import Flask, Response, request, jsonify, send_from_directory
+from flask import Flask, Response, json, request, jsonify, send_from_directory
 from master import Game
 
 
@@ -73,6 +73,13 @@ def place_bomb():
     bomb_id = request.json.get("bombId")
     extra = request.json.get("extra")
     success = game.deploy_bomb(player, coords, bomb_id, extra)
+    return jsonify({"outcome": success})
+
+
+@app.route("/skip_turn", methods=["POST"])
+def skip_turn():
+    player = int(request.json.get("player"))
+    success = game.skip_turn(player)
     return jsonify({"outcome": success})
 
 

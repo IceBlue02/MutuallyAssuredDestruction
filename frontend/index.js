@@ -618,9 +618,27 @@ class SiloPlacer {
     }
 }
 
+class SkipButton {
+    constructor(game) {
+        this.game = game;
+        this.button = new RectEntity(rect(50, 25, 200, 75), RED);
+    }
+    render() {
+        if (!this.game.selectionActive) return;
+        const hover = collideRect(state.mouse, this.button.rect);
+        if (hover) state.cursorPointer = true;
+        this.button.colour = hover ? RED + "aa" : RED;
+        this.button.render();
+        drawText(this.button.rect.x + this.button.rect.w / 2, this.button.rect.y + 25, "Skip Turn", 32, "#fff");
+        if (hover && state.wasClickThisFrame) this.game.skipTurn();
+    }
+}
+
 class Game {
     constructor() {
         this.cards = {};
+
+        this.skipButton = new SkipButton(this);
 
         this.destroyedCount = [];
 
@@ -824,6 +842,11 @@ class Game {
         }
     }
 
+    async skipTurn() {
+        const { outcome } = await post("skip_turn", { player: this.player });
+        if (outcome) await this.startNextTurn();
+    }
+
     async playCard(x, y) {
         if (!this.selectedCard) return;
         state.wasClickThisFrame = false;
@@ -836,6 +859,9 @@ class Game {
         if (!outcome) return;
         this.p1hand.cards = this.p1hand.cards.filter((x) => x !== this.selectedCard);
         this.playedCard = this.selectedCard;
+    }
+
+    async startNextTurn() {
         this.selectedCard = null;
         this.extraSelected = [];
         this.selectionReady = false;
@@ -956,6 +982,8 @@ class Game {
         this.factoryPlacer.render();
         this.siloPlacer.render();
 
+        this.skipButton.render();
+
         state.canvas.style.cursor = state.cursorPointer ? "pointer" : "default";
 
         state.ctx.fillStyle = "#fff";
@@ -991,7 +1019,4 @@ const redTile = asset("redTile.png");
 const greyTile = asset("greyTile.png");
 const blueTile = asset("blueTile.png");
 
-const main = async () => {
-    new Game().start();
-};
-main();
+new Game().start();
