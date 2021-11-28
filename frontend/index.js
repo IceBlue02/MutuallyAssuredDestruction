@@ -660,7 +660,7 @@ class Game {
         this.extraSelected = [];
         this.animatingCard = null;
         this.factoriesremaining = [0, 0];
-        this.silosremaining = [0, 0]
+        this.silosremaining = [0, 0];
 
         state.canvas = document.getElementById("root");
         /** @type {CanvasRenderingContext2D} */
@@ -692,20 +692,20 @@ class Game {
                             this.grid.entities.push([[x, y], new Silo(rect(), player === TILE_GREY)]);
                             if (!player == TILE_GREY) {
                                 if (x < 15) {
-                                    this.silosremaining[0]++
+                                    this.silosremaining[0]++;
                                 } else {
-                                    this.silosremaining[1]++
+                                    this.silosremaining[1]++;
                                 }
                                 break;
                             }
-                            
+
                         case BUILDING_FACTORY:
                             this.grid.entities.push([[x, y], new Factory(rect(), player === TILE_GREY)]);
                             if (!player == TILE_GREY) {
                                 if (x < 15) {
-                                    this.factoriesremaining[0]++
+                                    this.factoriesremaining[0]++;
                                 } else {
-                                    this.factoriesremaining[1]++
+                                    this.factoriesremaining[1]++;
                                 }
                                 break;
                             }
@@ -979,32 +979,28 @@ class Game {
         if (this.player == P1) {
             const paneRect = rect(0, 200, 180, 300);
             drawRect(paneRect, RED);
-            let text = "Factories"
+            let text = "Factories";
             drawText(66, 250, text, 24, "#FFF");
-            text = "Remaining: " + this.factoriesremaining[0].toString()
+            text = "Remaining: " + this.factoriesremaining[0].toString();
             drawText(85, 280, text, 24, "#FFF");
 
-            text = "Silos"
+            text = "Silos";
             drawText(42, 320, text, 24, "#FFF");
-            text = "Remaining: " + this.silosremaining[0].toString()
+            text = "Remaining: " + this.silosremaining[0].toString();
             drawText(85, 350, text, 24, "#FFF");
         } else {
             const paneRect = rect(1740, 200, 180, 300);
             drawRect(paneRect, BLUE);
-            let text = "Factories"
+            let text = "Factories";
             drawText(1806, 250, text, 24, "#FFF");
-            text = "Remaining: " + this.factoriesremaining[1].toString()
+            text = "Remaining: " + this.factoriesremaining[1].toString();
             drawText(1825, 280, text, 24, "#FFF");
 
-            text = "Silos"
+            text = "Silos";
             drawText(1782, 320, text, 24, "#FFF");
-            text = "Remaining: " + this.silosremaining[1].toString()
+            text = "Remaining: " + this.silosremaining[1].toString();
             drawText(1825, 350, text, 24, "#FFF");
         }
-        
-
-                
-
     }
 
     updateTiming() {
@@ -1027,7 +1023,7 @@ class Game {
 
         state.ctx.fillStyle = "#000";
         state.ctx.fillRect(0, 0, state.canvas.width, state.canvas.height);
-        drawRect(rect(0, 0, 1920, 1080), "#420");
+        drawImage(rect(0, 0, 1920, 1080), bg);
 
         this.grid.render();
 
@@ -1077,6 +1073,7 @@ class Game {
     }
 }
 
+const bg = asset("texture.png");
 const cardBackRed = asset("cardBackRed.png");
 const cardBackBlue = asset("cardBackBlue.png");
 const cardBackGreen = asset("cardBackGreen.png");
