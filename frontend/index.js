@@ -102,7 +102,7 @@ const drawImage = ({ x, y, w, h }, image, rotation, imageScale) => {
 };
 const drawText = (x, y, text, size, colour, outline, outlineSize = 2) => {
     const { xo, yo, scale } = getViewport();
-    state.ctx.font = `${size * scale}px monospace`;
+    state.ctx.font = `${size * scale}px sans-serif`;
     state.ctx.fillStyle = colour;
     const { width } = state.ctx.measureText(text);
 
@@ -185,6 +185,7 @@ class Tile extends ImageEntity {
     constructor(rect, type) {
         super(rect);
         this.animateScale = true;
+        this.type = type;
         this.image = type === TILE_RED ? redTile : type === TILE_BLUE ? blueTile : greyTile;
     }
 }
@@ -192,7 +193,7 @@ class Tile extends ImageEntity {
 class Card extends ImageEntity {
     constructor(game, rect, bombId) {
         super(rect);
-        bombId = randomCardType();
+        if (bombId !== -1) bombId = randomCardType();
         this.bombId = bombId;
         this.image = bombId === -1 ? cardBackRed : game.cards[bombId].image;
         this.animatePos = true;
@@ -332,7 +333,7 @@ class CardSelector {
             x += cardWidth + cardGap;
         }
 
-        drawText(960, 685, "Pick 1", 84, RED, "#000", 8);
+        drawText(960, 685, "Select one card", 54 + tween(0.75) * 10, "#fff", RED, 0);
     }
 }
 
@@ -351,7 +352,7 @@ class Grid {
         for (let x = 0; x < this.WIDTH; x++) {
             this.tiles.push([]);
             for (let y = 0; y < this.HEIGHT; y++) {
-                const rand = Math.random();
+                // const rand = Math.random();
                 this.tiles[x].push(
                     new Tile(
                         rect(
@@ -360,11 +361,12 @@ class Grid {
                             this.TILE_WIDTH,
                             this.TILE_HEIGHT
                         ),
-                        rand > 0.66 ? TILE_RED : rand > 0.33 ? TILE_BLUE : TILE_GREY
+                        x < 15 ? TILE_RED : TILE_BLUE
                     )
                 );
             }
         }
+        this.entities = [];
     }
 
     render() {
@@ -372,17 +374,19 @@ class Grid {
         this.tiles.forEach((col, x) => {
             col.forEach((tile, y) => {
                 tile.render();
-                const hover = collideRect(state.mouse, tile.rect);
+                const hover =
+                    collideRect(state.mouse, tile.rect) &&
+                    (this.game.selectedCard || (this.game.factoryPlacer.active && tile.type === this.game.player));
                 if (hover) hoverTile = [x, y];
                 tile.setScale(1);
 
                 if (hover && this.game.selectedCard && state.wasClickThisFrame) this.game.playCard(x, y);
+                if (hover && this.game.factoryPlacer.active && state.wasClickThisFrame) this.game.placeFactory(x, y);
             });
         });
 
         const hovers = [];
         if (hoverTile && this.game.selectedCard !== null) {
-            state.cursorPointer = true;
             for (let dx = 0; dx < 5; dx++) {
                 for (let dy = 0; dy < 5; dy++) {
                     if (this.game.selectedBombShape[dy][dx]) {
@@ -391,9 +395,23 @@ class Grid {
                 }
             }
         }
+        if (hoverTile && this.game.factoryPlacer.active) hovers.push(hoverTile);
+
+        for (const [[x, y], entity] of this.entities) {
+            entity.rect.x = this.RECT.x + x * this.TILE_WIDTH;
+            entity.rect.y = this.RECT.y + y * this.TILE_HEIGHT;
+            entity.rect.w = this.TILE_WIDTH;
+            entity.rect.h = this.TILE_HEIGHT;
+            entity.render();
+            entity.setScale(1);
+        }
 
         for (const [x, y] of hovers) {
+            state.cursorPointer = true;
             this.tiles[x]?.[y]?.setScale(0.5);
+            for (const e of this.entities) {
+                if (e[0][0] === x && e[0][1] === y) e[1].setScale(0.5);
+            }
         }
     }
 }
@@ -406,12 +424,11 @@ class TurnIndicator {
         this.top.stepSpeed = 15;
         this.bottom.stepSpeed = 15;
 
-        this.showing = true;
+        this.showing = false;
+        this.hiding = false;
         this.alpha = 0;
         this.showTime = null;
         this.hideTime = null;
-
-        this.show();
     }
     render() {
         const redTurn = this.game.playerTurn === P1;
@@ -424,13 +441,14 @@ class TurnIndicator {
         this.bottom.render();
 
         if (this.showing) this.alpha = Math.min(1, (state.animation - this.showTime) * 3);
-        else this.alpha = 1 - Math.min(1, (state.animation - this.hideTime) * 3);
+        else if (this.hiding) this.alpha = 1 - Math.min(1, (state.animation - this.hideTime) * 3);
 
-        drawText(1920 / 2, 1080 / 2 - 100, `Turn ${this.game.turn}`, 200, `rgba(0, 0, 0, ${this.alpha})`);
-        drawText(1920 / 2, 1080 / 2 + 50, `${text}'s turn`, 100, `rgba(0, 0, 0, ${this.alpha})`);
+        drawText(1920 / 2, 1080 / 2 - 75, `Turn ${this.game.turn}`, 200, `rgba(255, 255, 255, ${this.alpha})`);
+        drawText(1920 / 2, 1080 / 2 + 75, `${text}'s turn`, 100, `rgba(255, 255, 255, ${this.alpha})`);
     }
     show() {
         const height = 1080 / 4;
+        this.showing = true;
 
         this.showTime = state.animation;
         this.top.rect = rect(0, 540 - height, 0, height);
@@ -446,6 +464,8 @@ class TurnIndicator {
         delay(2500).then(() => this.hide());
     }
     hide() {
+        this.showing = false;
+        this.hiding = true;
         this.top.stepSpeed = 10;
         this.bottom.stepSpeed = 10;
 
@@ -455,6 +475,37 @@ class TurnIndicator {
         this.bottom.rect.w = 0;
 
         this.hideTime = state.animation;
+    }
+}
+
+class Factory extends ImageEntity {
+    constructor(rect) {
+        super(rect);
+        this.image = asset("greyTile.png");
+        this.animateScale = true;
+    }
+}
+
+class FactoryPlacer {
+    constructor(game, num = 5) {
+        this.game = game;
+        this.left = num;
+        this.active = false;
+        this.factories = [];
+    }
+
+    place(x, y) {
+        if (this.factories.some(([x1, y1]) => x1 === x && y1 === y)) return;
+        this.factories.push([x, y]);
+        this.left--;
+        this.game.grid.entities.push([[x, y], new Factory(rect())]);
+        // TODO: This
+    }
+
+    render() {
+        if (!this.active) return;
+        const plural = this.left === 1 ? "factory" : "factories";
+        drawText(960, 775, `${this.left} ${plural} left to place`, 54, "#fff", RED, 0);
     }
 }
 
@@ -503,8 +554,14 @@ class Game {
         };
     }
     startGame() {
-        // TODO: This
-        this.newHand();
+        this.factoryPlacer.active = true;
+    }
+    beginActualGame() {
+        this.turnIndicator.show();
+        delay(4000).then(() => {
+            // TODO: This
+            this.newHand();
+        });
     }
 
     setupListeners() {
@@ -529,6 +586,14 @@ class Game {
             state.canvas.height = height;
         });
         ro.observe(state.canvas);
+    }
+
+    async placeFactory(x, y) {
+        this.factoryPlacer.place(x, y);
+        if (this.factoryPlacer.left === 0) {
+            this.factoryPlacer.active = false;
+            // TODO: This
+        }
     }
 
     async playCard(x, y) {
@@ -607,6 +672,7 @@ class Game {
         this.cardSelector.render();
 
         this.turnIndicator.render();
+        this.factoryPlacer.render();
 
         state.canvas.style.cursor = state.cursorPointer ? "pointer" : "default";
 
@@ -619,13 +685,15 @@ class Game {
     }
 
     async start() {
+        this.turnIndicator = new TurnIndicator(this);
+        this.factoryPlacer = new FactoryPlacer(this);
+
         await this.initialSetup();
 
         this.grid = new Grid(this);
         this.p1Hand = new Hand(this, P1);
         this.p2Hand = new Hand(this, P2);
         this.cardSelector = new CardSelector(this);
-        this.turnIndicator = new TurnIndicator(this);
 
         this.render();
     }
