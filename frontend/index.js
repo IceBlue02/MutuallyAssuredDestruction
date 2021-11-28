@@ -97,7 +97,7 @@ const drawImage = ({ x, y, w, h }, image, rotation, imageScale) => {
 };
 const drawText = (x, y, text, size, colour, outline, outlineSize = 2) => {
     const { xo, yo, scale } = getViewport();
-    state.ctx.font = `${size * scale}px sans-serif`;
+    state.ctx.font = `${size * scale}px 'Exo 2'`;
     state.ctx.fillStyle = colour;
     const { width } = state.ctx.measureText(text);
 
@@ -684,9 +684,17 @@ class Game {
             played.rect.x = (1920 - 250) / 2;
             played.rect.w = 250;
             played.stepSpeed = 5;
-            await delay(500);
+            await delay(1000);
+        } else {
+            await delay(1500);
         }
-        await delay(1500);
+
+        played.image = cardBackRed;
+        played.rect.x = 1920 / 2;
+        played.rect.w = 0;
+        played.stepSpeed = 5;
+        await delay(500);
+
         this.animatingCard = null;
     }
 
