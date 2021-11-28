@@ -107,6 +107,19 @@ class Board:
                     else:
                         self.board[x_pos][y_pos].state = State.GREY
 
+    def get_destroyed_counts(self):
+        counts = [0, 0]
+        for row in self.board:
+            for x, elem in enumerate(row):
+                if elem.state == 0:
+                    if x >= 15:
+                        counts[1] += 1
+                    else:
+                        counts[0] += 1
+
+        return counts
+
+
 
 class Bomb:
     def __init__(self, id, name, rarity, description, shape):
@@ -345,7 +358,7 @@ class Game:
         self.cards = Cards()
         self.offeredcards = []
 
-        self.playersingame = 0
+        self.playersingame = [False, False]
         self.startingboardset = [False, False]
         self.turn_change_event = threading.Event()
         self.game_start_event = threading.Event()
@@ -373,10 +386,11 @@ class Game:
         return data
 
     def on_game_entry(self):
-        self.playersingame += 1
-        if self.playersingame == 1:
+        if not self.playersingame[0]:
+            self.playersingame[0] = True
             return {"player": Player.RED, "ready": False}
         else:
+            self.playersingame[1] = True
             self.game_start_event.set()
             self.game_start_event.clear()
             return {"player": Player.BLUE, "ready": True}
@@ -448,6 +462,7 @@ class Game:
             "otherHand": len(other_hand),
             "board": self.game_board.get_serial_board(player),
             "lastPlayed": self.last_played,
+            "destroyedCount": self.game_board.get_destroyed_counts()
         }
 
     def deck_builder(self):
