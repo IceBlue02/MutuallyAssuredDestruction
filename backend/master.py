@@ -236,8 +236,8 @@ class Game():
     def __init__(self):
         self.deck = [None]
         self.player = 1
-        self.red_hand =[]
-        self.blue_hand = []
+        self.red_hand = Game.initialise_hand
+        self.blue_hand = Game.initialise_hand
         self.game_board = Board()
         self.red_hand_size = self.game_board.get_silo(1)
         self.blue_hand_size = self.game_board.get_silo(-1)
@@ -251,6 +251,12 @@ class Game():
         self.playersingame = 0
         self.turn_change_event = threading.Event()
         self.game_start_event = threading.Event()
+
+    def initialise_hand(self):
+        hand = [None]
+        for _ in range(0, self.game_board.get_factor(1)):
+            hand.append(self.get_card())
+        return hand
 
     def get_cards(self):
         data = []
@@ -281,8 +287,7 @@ class Game():
         self.game_start_event.wait()
         return {"ready": True}
 
-    def placeFactories(self,turn, data):
-
+    def place_factories(self,turn, data):
         for i in range (0,3):
             x = data["factories"][i][0]
             y = data["factories"][i][1]
@@ -292,7 +297,7 @@ class Game():
                 self.game_board[x][y].building = 1
 
 
-    def placeSilo(self,turn, data):
+    def place_silo(self,turn, data):
         for i in range (0,3):
             x = data["silo"][i][0]
             y = data["silo"][i][1]
