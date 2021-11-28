@@ -468,7 +468,7 @@ class Game():
                 if self.red_hand[i].id == bomb_id:
                     self.red_hand.pop(i)
                     number += -1
-                    continue
+                    
                 i += 1
         if self.player == -1:
             while number > 0:
@@ -476,7 +476,6 @@ class Game():
                 if self.blue_hand[i].id == bomb_id:
                     self.blue_hand.pop(i)
                     number += -1
-                    continue
                 i += 1
 
     def deploy_bomb(self, player, coord, bomb_id):
@@ -489,7 +488,6 @@ class Game():
                         Game.remove_card(bomb_id, 1)
                         self.swap_turns()
                         return True
-     
                 return False
 
             if self.player == 1:

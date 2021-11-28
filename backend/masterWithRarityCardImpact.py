@@ -368,6 +368,23 @@ class Game():
             hand_options.append(card.id)
         return hand_options
 
+    def remove_card(self, bomb_id, number):
+        if self.player == 1:
+            while number > 0:
+                i = 0
+                if self.red_hand[i].id == bomb_id:
+                    self.red_hand.pop(i)
+                    number += -1
+                    continue
+                i += 1
+        if self.player == -1:
+            while number > 0:
+                i = 0
+                if self.blue_hand[i].id == bomb_id:
+                    self.blue_hand.pop(i)
+                    number += -1
+                    continue
+                i += 1
 
     def deploy_bomb(self, player, coord, bomb_id):
         if player == self.player:
@@ -379,14 +396,31 @@ class Game():
                         for i in range(0, len(self.blue_hand)):
                             if self.blue_hand[i].id == bomb_id:
                                 duplicate_bombs += 1
-                        if duplicate_bombs < bomb.rarity:
+                        if duplicate_bombs >= bomb.rarity:
                             self.game_board.apply_bomb(bomb.shape, int(coord[0]), int(coord[1]))
-                            Game.remove_card(bomb_id, bomb.rarity)
+                            self.remove_card(bomb_id, bomb.rarity)
+                            self.swap_turns()
+                            return True
+                        else:
+                            return False
+            if self.player == 1:
+                for i in range(0, len(self.red_hand)):
+                    if self.blue_hand[i].id == bomb_id:
+                        bomb = self.cards.bombs[bomb_id-1]
+                        duplicate_bombs = 0
+                        for i in range(0, len(self.red_hand)):
+                            if self.blue_hand[i].id == bomb_id:
+                                duplicate_bombs += 1
+                        if duplicate_bombs >= bomb.rarity:
+                            self.game_board.apply_bomb(bomb.shape, int(coord[0]), int(coord[1]))
+                            self.remove_card(bomb_id, bomb.rarity)
                             self.swap_turns()
                             return True
                         else:
                             return False
                 return False
+        else:
+            return False
    
    
     def main(self):
