@@ -181,12 +181,15 @@ class RectEntity extends Entity {
     }
 }
 
+const tileImage = (type) => (
+    type === TILE_RED ? redTile : type === TILE_BLUE ? blueTile : greyTile
+);
 class Tile extends ImageEntity {
     constructor(rect, type) {
         super(rect);
         this.animateScale = true;
         this.type = type;
-        this.image = type === TILE_RED ? redTile : type === TILE_BLUE ? blueTile : greyTile;
+        this.image = tileImage(type);
     }
 }
 
@@ -210,8 +213,6 @@ class Hand {
         this.large = this.player === P1;
 
         this.selectedCard = null;
-
-        for (let i = 0; i < 7; i++) this.addCard(player === P1 ? 0 : -1);
     }
     addCard(type) {
         this.cards.push(new Card(this.game, rect(), type));
@@ -352,7 +353,6 @@ class Grid {
         for (let x = 0; x < this.WIDTH; x++) {
             this.tiles.push([]);
             for (let y = 0; y < this.HEIGHT; y++) {
-                // const rand = Math.random();
                 this.tiles[x].push(
                     new Tile(
                         rect(
@@ -361,12 +361,17 @@ class Grid {
                             this.TILE_WIDTH,
                             this.TILE_HEIGHT
                         ),
-                        x < 15 ? TILE_RED : TILE_BLUE
+                        TILE_GREY
                     )
                 );
             }
         }
         this.entities = [];
+    }
+
+    setTile(x, y, type) {
+        this.tiles[x][y].type = type;
+        this.tiles[x][y].image = tileImage(type);
     }
 
     render() {
@@ -376,12 +381,15 @@ class Grid {
                 tile.render();
                 const hover =
                     collideRect(state.mouse, tile.rect) &&
-                    (this.game.selectedCard || (this.game.factoryPlacer.active && tile.type === this.game.player));
+                    (this.game.selectedCard ||
+                        ((this.game.factoryPlacer.active || this.game.siloPlacer.active) &&
+                            tile.type === this.game.player));
                 if (hover) hoverTile = [x, y];
                 tile.setScale(1);
 
                 if (hover && this.game.selectedCard && state.wasClickThisFrame) this.game.playCard(x, y);
                 if (hover && this.game.factoryPlacer.active && state.wasClickThisFrame) this.game.placeFactory(x, y);
+                if (hover && this.game.siloPlacer.active && state.wasClickThisFrame) this.game.placeSilo(x, y);
             });
         });
 
@@ -395,7 +403,7 @@ class Grid {
                 }
             }
         }
-        if (hoverTile && this.game.factoryPlacer.active) hovers.push(hoverTile);
+        if (hoverTile && (this.game.factoryPlacer.active || this.game.siloPlacer.active)) hovers.push(hoverTile);
 
         for (const [[x, y], entity] of this.entities) {
             entity.rect.x = this.RECT.x + x * this.TILE_WIDTH;
@@ -481,7 +489,15 @@ class TurnIndicator {
 class Factory extends ImageEntity {
     constructor(rect) {
         super(rect);
-        this.image = asset("greyTile.png");
+        this.image = asset("factory.png");
+        this.animateScale = true;
+    }
+}
+
+class Silo extends ImageEntity {
+    constructor(rect) {
+        super(rect);
+        this.image = asset("silo.png");
         this.animateScale = true;
     }
 }
@@ -508,6 +524,29 @@ class FactoryPlacer {
         drawText(960, 775, `${this.left} ${plural} left to place`, 54, "#fff", RED, 0);
     }
 }
+class SiloPlacer {
+    constructor(game, num = 5) {
+        this.game = game;
+        this.left = num;
+        this.active = false;
+        this.silos = [];
+    }
+
+    place(x, y) {
+        if (this.silos.some(([x1, y1]) => x1 === x && y1 === y)) return;
+        if (this.game.factoryPlacer.factories.some(([x1, y1]) => x1 === x && y1 === y)) return;
+        this.silos.push([x, y]);
+        this.left--;
+        this.game.grid.entities.push([[x, y], new Silo(rect())]);
+        // TODO: This
+    }
+
+    render() {
+        if (!this.active) return;
+        const plural = this.left === 1 ? "silo" : "silos";
+        drawText(960, 775, `${this.left} ${plural} left to place`, 54, "#fff", RED, 0);
+    }
+}
 
 class Game {
     constructor() {
@@ -531,6 +570,22 @@ class Game {
         this.setupListeners();
     }
 
+    async updateBoardAndHands() {
+        const { board, hand } = await post("get_game_state", { player: this.player });
+        this.p1Hand.cards = [];
+        hand.map((x) => this.p1Hand.addCard(x));
+
+        board.forEach((row, x) => {
+            row.forEach((tile, y) => {
+                this.grid.setTile(x, y, tile);
+            });
+        });
+
+        const { hand: p2hand } = await post("get_game_state", { player: this.player === P1 ? P2 : P1 });
+        this.p2Hand.cards = [];
+        p2hand.map((x) => this.p2Hand.addCard(-1));
+    }
+
     async initialSetup() {
         const cards = await get("get_cards");
         for (const card of cards) {
@@ -539,6 +594,9 @@ class Game {
 
         const { player, ready } = await post("connect");
         this.player = player;
+
+        await this.updateBoardAndHands();
+
         if (ready) this.startGame();
         else {
             const listener = new EventSource(`${HOST}/await_start`);
@@ -592,7 +650,16 @@ class Game {
         this.factoryPlacer.place(x, y);
         if (this.factoryPlacer.left === 0) {
             this.factoryPlacer.active = false;
+            this.siloPlacer.active = true;
+        }
+    }
+    async placeSilo(x, y) {
+        this.siloPlacer.place(x, y);
+        if (this.siloPlacer.left === 0) {
+            this.siloPlacer.active = false;
             // TODO: This
+
+            this.beginActualGame();
         }
     }
 
@@ -673,6 +740,7 @@ class Game {
 
         this.turnIndicator.render();
         this.factoryPlacer.render();
+        this.siloPlacer.render();
 
         state.canvas.style.cursor = state.cursorPointer ? "pointer" : "default";
 
@@ -687,13 +755,13 @@ class Game {
     async start() {
         this.turnIndicator = new TurnIndicator(this);
         this.factoryPlacer = new FactoryPlacer(this);
-
-        await this.initialSetup();
-
+        this.siloPlacer = new SiloPlacer(this);
         this.grid = new Grid(this);
         this.p1Hand = new Hand(this, P1);
         this.p2Hand = new Hand(this, P2);
         this.cardSelector = new CardSelector(this);
+
+        await this.initialSetup();
 
         this.render();
     }

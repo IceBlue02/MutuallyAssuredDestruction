@@ -11,7 +11,7 @@ class Tile:
 
     def get_building(self):
         return self.building
-    
+
     def get_state(self):
         return self.state
 
@@ -110,7 +110,7 @@ class Building(IntEnum):
 
 class Bomb():
     def __init__(self, id, name, rarity, description, shape):
-        self.name = name 
+        self.name = name
         self.id = id
         self.rarity = rarity
         self.description = description
@@ -156,11 +156,11 @@ class Cards():
         self.bombs.append(circle)
 
         diamond = Bomb(3,"Bomb",self.rarity("common"), "Diamonds are forever. So is the damage left by this.", [
+            [0,0,1,0,0],
             [0,1,1,1,0],
             [1,1,1,1,1],
-            [1,1,1,1,1],
-            [1,1,1,1,1],
             [0,1,1,1,0],
+            [0,0,1,0,0],
         ])
 
         self.bombs.append(diamond)
@@ -170,7 +170,7 @@ class Cards():
             [1,0,0,0,1],
             [1,0,1,0,1],
             [1,0,0,0,1],
-            [1,1,1,1,1], 
+            [1,1,1,1,1],
         ])
         self.bombs.append(target)
 
@@ -179,11 +179,11 @@ class Cards():
             [0,1,0,1,0],
             [1,0,1,0,1],
             [0,1,0,1,0],
-            [1,0,1,0,1], 
+            [1,0,1,0,1],
         ])
         self.bombs.append(www_dot_bomb)
 
-        X = Bomb(6,"X", self.rarity("common"),"It marks the spot. And hits it.", [ 
+        X = Bomb(6,"X", self.rarity("common"),"It marks the spot. And hits it.", [
             [1,0,0,0,1],
             [0,1,0,1,0],
             [0,0,1,0,0],
@@ -192,16 +192,16 @@ class Cards():
         ])
         self.bombs.append(X)
 
-        H0 = Bomb(7,"H0",self.rarity("common"), "Can you add the H0,Bomb to the game?' 'Yeah sure I got you'", [ 
+        H0 = Bomb(7,"H0",self.rarity("common"), "Can you add the H0,Bomb to the game?' 'Yeah sure I got you'", [
             [1,0,0,0,1],
             [1,0,0,0,1],
             [1,1,1,1,1],
             [1,0,0,0,1],
-            [1,0,0,0,1],         
+            [1,0,0,0,1],
         ])
         self.bombs.append(H0)
 
-        PO = Bomb(8,"P0", self.rarity("average"),"Not sure why you'd make a bomb like this, but there you go.", [ 
+        PO = Bomb(8,"P0", self.rarity("average"),"Not sure why you'd make a bomb like this, but there you go.", [
             [1,1,1,1,0],
             [1,1,1,1,0],
             [1,1,1,1,0],
@@ -210,7 +210,7 @@ class Cards():
         ])
         self.bombs.append(PO)
 
-        cherry = Bomb(9,"Cherry", self.rarity("super rare"), "Yep, it's a pair of Cherries. ", [ 
+        cherry = Bomb(9,"Cherry", self.rarity("super rare"), "Yep, it's a pair of Cherries. ", [
             [0,0,1,0,0],
             [0,0,1,0,0],
             [0,0,1,0,0],
@@ -219,30 +219,30 @@ class Cards():
         ])
         self.bombs.append(cherry)
 
-        e = Bomb(10,"e", self.rarity("rare"), "2.71828182845904523536028747135", [ 
+        e = Bomb(10,"e", self.rarity("rare"), "2.71828182845904523536028747135", [
             [1,1,1,1,1],
             [1,0,0,0,1],
             [1,1,1,1,1],
             [1,0,0,0,0],
-            [1,1,1,1,1], 
+            [1,1,1,1,1],
         ])
         self.bombs.append(e)
 
-        A0 = Bomb(11,"A0",self.rarity("common"), "I know I'll be A0,O, A0,O0,K.", [ 
+        A0 = Bomb(11,"A0",self.rarity("common"), "I know I'll be A0,O, A0,O0,K.", [
             [0,0,1,0,0],
             [0,1,0,1,0],
             [0,1,1,1,0],
-            [1,0,0,0,1], 
-            [1,0,0,0,1],           
+            [1,0,0,0,1],
+            [1,0,0,0,1],
         ])
         self.bombs.append(A0)
 
-        England = Bomb(12, "ENGLAND",self.rarity("common"), "RULE BRITANNIA, BRITANNIA RULES THE WAVES", [ 
+        England = Bomb(12, "ENGLAND",self.rarity("common"), "RULE BRITANNIA, BRITANNIA RULES THE WAVES", [
             [0,0,1,0,0],
             [0,0,1,0,0],
             [1,1,1,1,1],
             [0,0,1,0,0],
-            [0,0,1,0,0], 
+            [0,0,1,0,0],
         ])
         self.bombs.append(England)
 
@@ -253,26 +253,26 @@ class Game():
         self.deck_builder()
         self.player = 1
 
-        
-        
+
+
         self.game_board = Board()
         self.red_hand_size = self.game_board.get_silo(1)
         self.blue_hand_size = self.game_board.get_silo(-1)
         self.red_hand = self.initialise_hand()
         self.blue_hand = self.initialise_hand()
-        
+
         self.setup = 0
         self.win = 1
         self.board_width = 30
         self.board_height = 15
-        
+
         self.cards = Cards()
-        
+
         self.playersingame = 0
         self.turn_change_event = threading.Event()
         self.game_start_event = threading.Event()
 
-        
+
     def initialise_hand(self):
         hand = []
         for _ in range(1, Game.STARTING_HAND_SIZE):
@@ -324,7 +324,7 @@ class Game():
             if(self.game_board[x][y].state != turn):
                 return False
             else:
-                self.game_board[x][y].building = 2   
+                self.game_board[x][y].building = 2
 
     def deploy_bomb(self, bomb_id):
         if self.player == -1:
@@ -357,7 +357,7 @@ class Game():
 
     def get_card(self):
         return random.choice(self.deck)
-        
+
     def get_hand_size(self):
         return self.game_board.get_silo(self.player)
 
@@ -386,7 +386,7 @@ class Game():
             for i in range(0,len(self.red_hand)-1):
                 bomb = self.red_hand[i]
                 hand_id.append(bomb.id)
-        else: 
+        else:
             print("Error")
 
         x = 0
