@@ -110,10 +110,10 @@ class Board:
                         self.board[x_pos][y_pos].state = State.GREY
     def get_destroyed_counts(self):
         counts = [0, 0]
-        for row in self.board:
-            for x, elem in enumerate(row):
+        for y, col in enumerate(self.board):
+            for elem in col:
                 if elem.state == 0:
-                    if x >= 15:
+                    if y >= 15:
                         counts[1] += 1
                     else:
                         counts[0] += 1
