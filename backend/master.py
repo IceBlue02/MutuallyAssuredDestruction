@@ -133,9 +133,9 @@ class Bomb:
 
 RARITY_SUPER_RARE = 5
 RARITY_RARE = 4
-RARITY_UNCOMMON = 3
-RARITY_AVERAGE = 2
-RARITY_COMMON = 1
+RARITY_AVERAGE = 3
+RARITY_COMMON = 2
+RARITY_YES = 1
 
 
 class Cards:
@@ -196,7 +196,7 @@ class Cards:
             Bomb(
                 4,
                 "Target",
-                RARITY_RARE,
+                RARITY_AVERAGE,
                 "You can't miss.",
                 [
                     [1, 1, 1, 1, 1],
@@ -276,7 +276,7 @@ class Cards:
             Bomb(
                 9,
                 "Cherry",
-                RARITY_SUPER_RARE,
+                RARITY_COMMON,
                 "Yep, it's a pair of Cherries. ",
                 [
                     [0, 0, 1, 0, 0],
@@ -292,7 +292,7 @@ class Cards:
             Bomb(
                 10,
                 "e",
-                RARITY_RARE,
+                RARITY_AVERAGE,
                 "2.71828182845904523536028747135",
                 [
                     [1, 1, 1, 1, 1],
