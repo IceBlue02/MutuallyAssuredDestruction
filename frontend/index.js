@@ -1,8 +1,8 @@
 const P1 = 1,
-    P2 = 2;
-const BLUE = -1,
-    GREY = 0,
-    RED = 1;
+    P2 = -1;
+const TILE_BLUE = -1,
+    TILE_GREY = 0,
+    TILE_RED = 1;
 const EMPTY = 1,
     SILO = 1,
     FACTORY = 2;
@@ -19,92 +19,8 @@ const BOMB_SQUARE = 1,
     BOMB_A_BOMB = 11,
     BOMB_ENGLAND = 12;
 
-const SHAPES = {
-    [BOMB_SQUARE]: [
-        [0, 0, 0, 0, 0],
-        [0, 1, 1, 1, 1],
-        [0, 1, 1, 1, 1],
-        [0, 1, 1, 1, 1],
-        [0, 1, 1, 1, 1],
-    ],
-    [BOMB_CIRCLE]: [
-        [0, 1, 1, 1, 0],
-        [1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1],
-        [1, 1, 1, 1, 1],
-        [0, 1, 1, 1, 0],
-    ],
-    [BOMB_DIAMOND]: [
-        [0, 0, 1, 0, 0],
-        [0, 1, 1, 1, 0],
-        [1, 1, 1, 1, 1],
-        [0, 1, 1, 1, 0],
-        [0, 0, 1, 0, 0],
-    ],
-    [BOMB_TARGET]: [
-        [1, 1, 1, 1, 1],
-        [1, 0, 0, 0, 1],
-        [1, 0, 1, 0, 1],
-        [1, 0, 0, 0, 1],
-        [1, 1, 1, 1, 1],
-    ],
-    [BOMB_DOT_DOT_DOT]: [
-        [1, 0, 1, 0, 1],
-        [0, 1, 0, 1, 0],
-        [1, 0, 1, 0, 1],
-        [0, 1, 0, 1, 0],
-        [1, 0, 1, 0, 1],
-    ],
-    [BOMB_X]: [
-        [1, 0, 0, 0, 1],
-        [0, 1, 0, 1, 0],
-        [0, 0, 1, 0, 0],
-        [0, 1, 0, 1, 0],
-        [1, 0, 0, 0, 1],
-    ],
-    [BOMB_H_BOMB]: [
-        [1, 1, 1, 1, 1],
-        [0, 0, 1, 0, 0],
-        [0, 0, 1, 0, 0],
-        [0, 0, 1, 0, 0],
-        [1, 1, 1, 1, 1],
-    ],
-    [BOMB_P_BOMB]: [
-        [1, 1, 1, 1, 1],
-        [1, 1, 1, 0, 0],
-        [1, 1, 1, 0, 0],
-        [1, 1, 1, 0, 0],
-        [0, 0, 0, 0, 0],
-    ],
-    [BOMB_CHERRY]: [
-        [0, 0, 0, 1, 1],
-        [0, 0, 0, 1, 1],
-        [1, 1, 1, 0, 0],
-        [0, 0, 0, 1, 1],
-        [0, 0, 0, 1, 1],
-    ],
-    [BOMB_E]: [
-        [1, 1, 1, 1, 1],
-        [1, 0, 1, 0, 1],
-        [1, 0, 1, 0, 1],
-        [1, 0, 1, 0, 1],
-        [1, 1, 1, 0, 1],
-    ],
-    [BOMB_A_BOMB]: [
-        [0, 0, 0, 1, 1],
-        [0, 1, 1, 0, 0],
-        [1, 0, 1, 0, 0],
-        [0, 1, 1, 0, 0],
-        [0, 0, 0, 1, 1],
-    ],
-    [BOMB_ENGLAND]: [
-        [0, 0, 1, 0, 0],
-        [0, 0, 1, 0, 0],
-        [1, 1, 1, 1, 1],
-        [0, 0, 1, 0, 0],
-        [0, 0, 1, 0, 0],
-    ],
-};
+const RED = "#fe2b2b";
+const BLUE = "#3f14ff";
 
 const state = {
     mouse: {
@@ -125,7 +41,7 @@ const HOST = "http://127.0.0.1:5000";
 
 const randomCardType = () => {
     const rand = Math.random();
-    return Math.floor(rand * 9) + 1;
+    return Math.floor(rand * 12) + 1;
 };
 
 const delay = async (miliseconds) => {
@@ -140,6 +56,10 @@ const post = async (endpoint, body = null) => {
         },
         body: JSON.stringify(body),
     }).then((x) => x.json());
+};
+
+const get = async (endpoint) => {
+    return await fetch(`${HOST}/${endpoint}`, { method: "GET" }).then((x) => x.json());
 };
 
 const asset = (src) => {
@@ -180,9 +100,21 @@ const drawImage = ({ x, y, w, h }, image, rotation, imageScale) => {
     state.ctx.drawImage(image, x, y, w, h);
     state.ctx.restore();
 };
-const drawText = (x, y, text, size, colour) => {
+const drawText = (x, y, text, size, colour, outline, outlineSize = 2) => {
     const { xo, yo, scale } = getViewport();
-    state.ctx.drawText((x + xo) * scale, (y + yo) * scale, text, size * scale, colour);
+    state.ctx.font = `${size * scale}px monospace`;
+    state.ctx.fillStyle = colour;
+    const { width } = state.ctx.measureText(text);
+
+    const rx = x * scale + xo - width / 2;
+    const ry = y * scale + yo + size / 2;
+    if (outline) {
+        state.ctx.strokeStyle = outline;
+        state.ctx.lineWidth = outlineSize * scale;
+        state.ctx.strokeText(text, rx, ry);
+    }
+
+    state.ctx.fillText(text, rx, ry);
 };
 const collideRect = ({ x, y }, { x: rx, y: ry, w: rw, h: rh }) => {
     if (x < rx || y < ry || x >= rx + rw || y >= ry + rh) return false;
@@ -196,54 +128,73 @@ class Entity {
     constructor(rect) {
         this._scale = 1;
         this._rotation = 0;
-        this.image = null;
         this.rect = rect;
         this._rect = { ...rect };
-        this.scale = 1;
-        this.rotation = 0;
         this.animateScale = false;
         this.animateRotataion = false;
         this.animatePos = false;
-    }
-    setScale(scale) {
-        this.scale = scale;
-        if (false && !this.animateScale) this._scale = this.scale;
-    }
-    setRotation(rotation) {
-        this.rotation = rotation;
-        if (!this.animateRotataion) this._rotation = this.rotation;
+        this.stepSpeed = 3;
     }
     setRect(rect) {
         this.rect = { ...rect };
     }
     render() {
-        this._scale = step(this._scale, this.scale);
-        this._rotation = step(this._rotation, this.rotation);
         if (this.animatePos) {
-            this._rect.x = step(this._rect.x, this.rect.x);
-            this._rect.y = step(this._rect.y, this.rect.y);
-            this._rect.w = step(this._rect.w, this.rect.w);
-            this._rect.h = step(this._rect.h, this.rect.h);
+            this._rect.x = step(this._rect.x, this.rect.x, this.stepSpeed);
+            this._rect.y = step(this._rect.y, this.rect.y, this.stepSpeed);
+            this._rect.w = step(this._rect.w, this.rect.w, this.stepSpeed);
+            this._rect.h = step(this._rect.h, this.rect.h, this.stepSpeed);
         } else this._rect = this.rect;
-
+        this._render();
+    }
+    _render() {}
+}
+class ImageEntity extends Entity {
+    constructor(rect) {
+        super(rect);
+        this.image = null;
+        this.scale = 1;
+        this.rotation = 0;
+    }
+    setScale(scale) {
+        this.scale = scale;
+        if (!this.animateScale) this._scale = this.scale;
+    }
+    setRotation(rotation) {
+        this.rotation = rotation;
+        if (!this.animateRotataion) this._rotation = this.rotation;
+    }
+    _render() {
+        this._rotation = step(this._rotation, this.rotation);
+        this._scale = step(this._scale, this.scale);
         if (this.image) drawImage(this._rect, this.image, this._rotation, this._scale);
     }
 }
 
-class Tile extends Entity {
-    constructor(rect, type) {
+class RectEntity extends Entity {
+    constructor(rect, colour) {
         super(rect);
-        this.animateScale = true;
-        this.image = type === RED ? redTile : type === BLUE ? blueTile : greyTile;
+        this.colour = colour;
+    }
+    _render() {
+        drawRect(this._rect, this.colour);
     }
 }
 
-class Card extends Entity {
-    constructor(rect, bombId) {
+class Tile extends ImageEntity {
+    constructor(rect, type) {
+        super(rect);
+        this.animateScale = true;
+        this.image = type === TILE_RED ? redTile : type === TILE_BLUE ? blueTile : greyTile;
+    }
+}
+
+class Card extends ImageEntity {
+    constructor(game, rect, bombId) {
         super(rect);
         bombId = randomCardType();
         this.bombId = bombId;
-        this.image = bombId === -1 ? cardBackRed : CARDS[bombId];
+        this.image = bombId === -1 ? cardBackRed : game.cards[bombId].image;
         this.animatePos = true;
         this.animateScale = true;
     }
@@ -259,10 +210,10 @@ class Hand {
 
         this.selectedCard = null;
 
-        for (let i = 0; i < 50; i++) this.addCard(player === P1 ? 0 : -1);
+        for (let i = 0; i < 7; i++) this.addCard(player === P1 ? 0 : -1);
     }
     addCard(type) {
-        this.cards.push(new Card(rect(), type));
+        this.cards.push(new Card(this.game, rect(), type));
     }
     render() {
         const cardWidth = this.large ? (this.game.selectionActive ? 200 : 150) : 100;
@@ -343,7 +294,7 @@ class CardSelector {
         this.game = game;
         this.cards = [];
 
-        this.active = true;
+        this.active = false;
     }
 
     newSelection(choices) {
@@ -352,7 +303,7 @@ class CardSelector {
     }
 
     addCard(type) {
-        const card = new Card(rect(), type);
+        const card = new Card(this.game, rect(), type);
         this.cards.push(card);
         card.animateScale = false;
         card.setScale(0);
@@ -380,6 +331,8 @@ class CardSelector {
             if (hover) state.cursorPointer = true;
             x += cardWidth + cardGap;
         }
+
+        drawText(960, 685, "Pick 1", 84, RED, "#000", 8);
     }
 }
 
@@ -407,7 +360,7 @@ class Grid {
                             this.TILE_WIDTH,
                             this.TILE_HEIGHT
                         ),
-                        rand > 0.66 ? RED : rand > 0.33 ? BLUE : GREY
+                        rand > 0.66 ? TILE_RED : rand > 0.33 ? TILE_BLUE : TILE_GREY
                     )
                 );
             }
@@ -432,7 +385,7 @@ class Grid {
             state.cursorPointer = true;
             for (let dx = 0; dx < 5; dx++) {
                 for (let dy = 0; dy < 5; dy++) {
-                    if (this.game.selectedBombShape[dx][dy]) {
+                    if (this.game.selectedBombShape[dy][dx]) {
                         hovers.push([hoverTile[0] + dx - 2, hoverTile[1] + dy - 2]);
                     }
                 }
@@ -445,16 +398,75 @@ class Grid {
     }
 }
 
+class TurnIndicator {
+    constructor(game) {
+        this.game = game;
+        this.top = new RectEntity(rect(), RED);
+        this.bottom = new RectEntity(rect(), RED);
+        this.top.stepSpeed = 15;
+        this.bottom.stepSpeed = 15;
+
+        this.showing = true;
+        this.alpha = 0;
+        this.showTime = null;
+        this.hideTime = null;
+
+        this.show();
+    }
+    render() {
+        const redTurn = this.game.playerTurn === P1;
+        this.top.colour = redTurn ? RED : BLUE;
+        this.bottom.colour = redTurn ? RED : BLUE;
+
+        const text = redTurn ? "Red" : "Blue";
+
+        this.top.render();
+        this.bottom.render();
+
+        if (this.showing) this.alpha = Math.min(1, (state.animation - this.showTime) * 3);
+        else this.alpha = 1 - Math.min(1, (state.animation - this.hideTime) * 3);
+
+        drawText(1920 / 2, 1080 / 2 - 100, `Turn ${this.game.turn}`, 200, `rgba(0, 0, 0, ${this.alpha})`);
+        drawText(1920 / 2, 1080 / 2 + 50, `${text}'s turn`, 100, `rgba(0, 0, 0, ${this.alpha})`);
+    }
+    show() {
+        const height = 1080 / 4;
+
+        this.showTime = state.animation;
+        this.top.rect = rect(0, 540 - height, 0, height);
+        this.top._rect = { ...this.top.rect };
+        this.top.animatePos = true;
+        this.bottom.rect = rect(1920, 540, 0, height);
+        this.bottom._rect = { ...this.bottom.rect };
+        this.bottom.animatePos = true;
+
+        this.top.rect.w = 1920;
+        this.bottom.rect.x = 0;
+        this.bottom.rect.w = 1920;
+        delay(2500).then(() => this.hide());
+    }
+    hide() {
+        this.top.stepSpeed = 10;
+        this.bottom.stepSpeed = 10;
+
+        this.showing = false;
+        this.top.rect.x = 1920;
+        this.top.rect.w = 0;
+        this.bottom.rect.w = 0;
+
+        this.hideTime = state.animation;
+    }
+}
+
 class Game {
     constructor() {
-        this.grid = new Grid(this);
-        this.player = P1;
-        this.p1Hand = new Hand(this, P1);
-        this.p2Hand = new Hand(this, P2);
-        this.cardSelector = new CardSelector(this);
+        this.cards = {};
+
+        this.turn = 1;
+        this.playerTurn = P1;
 
         this.selectedBombShape = null;
-        this.selectionActive = true;
+        this.selectionActive = false;
 
         this.selectedCard = null;
 
@@ -466,7 +478,32 @@ class Game {
         this.lastFrame = this.startTime;
         this.dt = 0;
         this.setupListeners();
+    }
 
+    async initialSetup() {
+        const cards = await get("get_cards");
+        for (const card of cards) {
+            this.cards[card.id] = { ...card, image: asset(`cards/${card.id}.png`) };
+        }
+
+        const { player, ready } = await post("connect");
+        this.player = player;
+        if (ready) this.startGame();
+        else {
+            const listener = new EventSource(`${HOST}/await_start`);
+            listener.onmessage = () => {
+                listener.close();
+                this.startGame();
+            };
+        }
+
+        const turnListener = new EventSource(`${HOST}/await_turn`);
+        turnListener.onmessage = (e) => {
+            console.log(e);
+        };
+    }
+    startGame() {
+        // TODO: This
         this.newHand();
     }
 
@@ -535,7 +572,7 @@ class Game {
 
     selectCard(card) {
         this.selectedCard = card;
-        if (card) this.selectedBombShape = SHAPES[card.bombId];
+        if (card) this.selectedBombShape = this.cards[card.bombId].shape;
     }
 
     updateTiming() {
@@ -547,6 +584,8 @@ class Game {
     }
 
     render() {
+        this.updateTiming();
+
         const renderStats = (side) => {
             const paneRect = rect(side ? 1920 - 250 : 50, 75, 200, 1080 - 450);
             drawRect(paneRect, "#ff0");
@@ -565,19 +604,29 @@ class Game {
 
         this.p1Hand.render();
         this.p2Hand.render();
-
         this.cardSelector.render();
+
+        this.turnIndicator.render();
 
         state.canvas.style.cursor = state.cursorPointer ? "pointer" : "default";
 
         state.ctx.fillStyle = "#fff";
-        state.ctx.fillText(`${(1 / this.dt).toFixed(2)} FPS`, 10, 10);
+        state.ctx.font = `10px Arial`;
+        state.ctx.fillText(`${(1 / this.dt).toFixed(2)} FPS`, 8, 15);
 
         state.wasClickThisFrame = false;
         requestAnimationFrame(() => this.render());
     }
 
-    start() {
+    async start() {
+        await this.initialSetup();
+
+        this.grid = new Grid(this);
+        this.p1Hand = new Hand(this, P1);
+        this.p2Hand = new Hand(this, P2);
+        this.cardSelector = new CardSelector(this);
+        this.turnIndicator = new TurnIndicator(this);
+
         this.render();
     }
 }
@@ -588,18 +637,6 @@ const cardBackGreen = asset("cardBackGreen.png");
 const redTile = asset("redTile.png");
 const greyTile = asset("greyTile.png");
 const blueTile = asset("blueTile.png");
-
-const CARDS = {
-    [BOMB_SQUARE]: asset("cards/1.png"),
-    [BOMB_CIRCLE]: asset("cards/2.png"),
-    [BOMB_DIAMOND]: asset("cards/3.png"),
-    [BOMB_TARGET]: asset("cards/4.png"),
-    [BOMB_DOT_DOT_DOT]: asset("cards/5.png"),
-    [BOMB_X]: asset("cards/6.png"),
-    [BOMB_H_BOMB]: asset("cards/7.png"),
-    [BOMB_P_BOMB]: asset("cards/8.png"),
-    [BOMB_CHERRY]: asset("cards/9.png"),
-};
 
 const main = async () => {
     new Game().start();
