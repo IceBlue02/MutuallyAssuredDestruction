@@ -252,26 +252,13 @@ class Game():
         self.turn_change_event = threading.Event()
         self.game_start_event = threading.Event()
 
+
+#start of game
     def initialise_hand(self):
         hand = [None]
-        for _ in range(0, self.game_board.get_factor(1)):
+        for _ in range(0, self.game_board.get_factories(1)):
             hand.append(self.get_card())
         return hand
-
-    def get_cards(self):
-        data = []
-        for c in self.cards.bombs:
-            if not c:
-                continue
-            print(c.id)
-            carddata = {}
-            carddata["id"] = c.id
-            carddata["name"] = c.name
-            carddata["rarity"] = c.rarity
-            carddata["shape"] = c.shape
-            data.append(carddata)
-
-        return data
 
     def on_game_entry(self):
         self.playersingame += 1
@@ -287,6 +274,13 @@ class Game():
         self.game_start_event.wait()
         return {"ready": True}
 
+    def deck_builder(self,deck):
+        card_holder = Cards()
+        card_holder.initaliseBombs()
+        for i in range(0,len(card_holder)):
+            for _ in range(0,card_holder[i].rarity):
+                self.deck.append(card_holder[i])
+
     def place_factories(self,turn, data):
         for i in range (0,3):
             x = data["factories"][i][0]
@@ -296,7 +290,6 @@ class Game():
             else:
                 self.game_board[x][y].building = 1
 
-
     def place_silo(self,turn, data):
         for i in range (0,3):
             x = data["silo"][i][0]
@@ -304,56 +297,23 @@ class Game():
             if(self.game_board[x][y].state != turn):
                 return False
             else:
-                self.game_board[x][y].building = 2   
+                self.game_board[x][y].building = 2  
 
-    def deploy_bomb(self, bomb_id):
-        if self.player == -1:
-            for i in range(0, len(self.blue_hand)):
-                if self.blue_hand[i].id == bomb_id:
-                    return True
-            return False
-        if self.player == 1:
-            for i in range(0, len(self.red_hand)):
-                if self.red_hand[i].id == bomb_id:
-                    return True
-            return False
+#getters
+    def get_cards(self):
+        data = []
+        for c in self.cards.bombs:
+            if not c:
+                continue
+            print(c.id)
+            carddata = {}
+            carddata["id"] = c.id
+            carddata["name"] = c.name
+            carddata["rarity"] = c.rarity
+            carddata["shape"] = c.shape
+            data.append(carddata)
 
-    def get_hand_options(self, factories):
-        hand_options = [None]
-        for i in range(0, factories):
-            card = self.get_card()
-            hand_options.append(card.id)
-        return hand_options
-
-    def get_arsenal():
-        card_holder = Cards()
-        card_holder.initaliseBombs()
-        arsenal = [None]
-        for i in range(0,len(card_holder)):
-            for _ in range(0,card_holder[i].rarity):
-                bomb = card_holder[i]
-                arsenal.append(bomb.id)
-        return arsenal
-
-    def get_card(self):
-        return random.choice(self.deck)
-        
-    def get_hand_size(self):
-        return self.game_board.get_silo(self.player)
-
-    def game_over(self):
-        red_tiles = 0
-        blue_tiles = 0
-        for i in range(0, self.board_height):
-            for j in range(0, self.board_width):
-                if self.game_board[i][j].get_state() == -1:
-                    blue_tiles += 1
-                if self.game_board[i][j].get_state() == 1:
-                    red_tiles += 1
-        if red_tiles == 0:
-            self.win= 0
-        if blue_tiles ==0:
-            self.win = 0
+        return data
 
     def get_game_state(self):
         if self.player == -1:
@@ -373,12 +333,48 @@ class Game():
         else: 
             print("Error")
 
-    def deck_builder(self,deck):
+    def get_hand_size(self):
+        return self.game_board.get_silo(self.player)
+
+    def get_card(self):
+        return random.choice(self.deck)
+
+    def get_arsenal():
         card_holder = Cards()
         card_holder.initaliseBombs()
+        arsenal = [None]
         for i in range(0,len(card_holder)):
             for _ in range(0,card_holder[i].rarity):
-                self.deck.append(card_holder[i])
+                bomb = card_holder[i]
+                arsenal.append(bomb.id)
+        return arsenal
+
+    def get_hand_options(self, factories):
+        hand_options = [None]
+        for i in range(0, factories):
+            card = self.get_card()
+            hand_options.append(card.id)
+        return hand_options
+
+    def get_hand_options(self, factories):
+        hand_options = [None]
+        for i in range(0, factories):
+            card = self.get_card()
+            hand_options.append(card.id)
+        return hand_options
+
+    def deploy_bomb(self, bomb_id):
+        if self.player == -1:
+            for i in range(0, len(self.blue_hand)):
+                if self.blue_hand[i].id == bomb_id:
+                    return True
+            return False
+        if self.player == 1:
+            for i in range(0, len(self.red_hand)):
+                if self.red_hand[i].id == bomb_id:
+                    return True
+            return False
+   
    
     def main(self):
         game_board = Board()
@@ -429,6 +425,20 @@ class Game():
         print("Waiting for turn change")
         self.turn_change_event.wait()
         return self.player
+
+    def game_over(self):
+        red_tiles = 0
+        blue_tiles = 0
+        for i in range(0, self.board_height):
+            for j in range(0, self.board_width):
+                if self.game_board[i][j].get_state() == -1:
+                    blue_tiles += 1
+                if self.game_board[i][j].get_state() == 1:
+                    red_tiles += 1
+        if red_tiles == 0:
+            self.win= 0
+        if blue_tiles ==0:
+            self.win = 0
 
 #need to write a function to get card.
 
