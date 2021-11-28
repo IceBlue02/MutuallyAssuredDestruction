@@ -104,9 +104,10 @@ class Board:
                     y_pos = y + (dx - 2)
                     if x_pos < 0 or y_pos < 0 or x_pos > 29 or y_pos > 14:
                         continue
+                    if  self.board[x_pos][y_pos].building == Building.SILO:
+                        self.lost_silo()
                     else:
                         self.board[x_pos][y_pos].state = State.GREY
-
     def get_destroyed_counts(self):
         counts = [0, 0]
         for row in self.board:
@@ -567,6 +568,11 @@ class Game:
 
         return self.player
 
+    def lost_silo(self):
+        hand = self.red_hand if self.player == Player.RED else self.blue_hand
+        hand.pop(random.randrange(0, len(hand)))
+
+
     def game_over(self):
         red_tiles = 0
         blue_tiles = 0
@@ -582,11 +588,11 @@ class Game:
         if blue_tiles == 0:
             self.win = True
             return Player.Blue
-        hand = self.red_hand if self.player == Player.RED else self.blue_han
+        hand = self.red_hand if self.player == Player.RED else self.blue_hand
         if len(hand) == 0:
             if self.game_board.get_factory_count(self.player) == 0:
                 self.win = True
                 return self.player 
-        
+
 if __name__ == "__main__":
     g = Game()
