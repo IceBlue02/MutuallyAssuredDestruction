@@ -245,6 +245,8 @@ class Game():
         self.win = 1
         self.board_width = 30
         self.board_height = 15
+        self.number_of_factories = 5
+        self.number_of_silos = 5
         
         self.cards = Cards()
         
@@ -282,7 +284,7 @@ class Game():
                 self.deck.append(card_holder[i])
 
     def place_factories(self,turn, data):
-        for i in range (0,3):
+        for i in range (0,self.number_of_factories):
             x = data["factories"][i][0]
             y = data["factories"][i][1]
             if(self.game_board[x][y].state != turn):
@@ -291,7 +293,7 @@ class Game():
                 self.game_board[x][y].building = 1
 
     def place_silo(self,turn, data):
-        for i in range (0,3):
+        for i in range (0,self.number_of_silos):
             x = data["silo"][i][0]
             y = data["silo"][i][1]
             if(self.game_board[x][y].state != turn):
@@ -375,7 +377,7 @@ class Game():
                     return True
             return False
    
-   
+
     def main(self):
         game_board = Board()
         Game.deck_builder(self.deck)
