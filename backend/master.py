@@ -3,6 +3,9 @@ import random
 import threading
 
 
+RARITY_BOMB_LOGIC = False
+
+
 class Player(IntEnum):
     RED = 1
     BLUE = -1
@@ -433,9 +436,6 @@ class Game:
 
         return True
 
-    def get_random_card(self):
-        return random.choice(self.deck)
-
     def get_hand_size(self):
         return self.game_board.get_silo_count(self.player)
 
@@ -461,8 +461,11 @@ class Game:
         possible = [
             card
             for card in self.deck
-            if card.rarity >= self.game_board.get_factory_count(player)
+            if (not RARITY_BOMB_LOGIC)
+            or (card.rarity <= self.game_board.get_factory_count(player))
         ]
+        if not possible:
+            return None
 
         return random.choice(possible)
 
@@ -475,6 +478,8 @@ class Game:
         hand_options = []
         for _ in range(self.game_board.get_factory_count(player)):
             card = self.get_random_card(player)
+            if card is None:
+                break
             hand_options.append(card.id)
 
         self.offeredcards = hand_options
@@ -511,23 +516,29 @@ class Game:
                 to_remove -= 1
         return to_remove
 
-    def remove_from_hand(self, player, bomb_id):
-        if self.remove_card(bomb_id, 1, player):
-            return False
-        return True
-
     def deploy_bomb(self, player, coord, bomb_id):
         if player != self.player:
             return False
 
-        if self.remove_from_hand(player, bomb_id):
+        if RARITY_BOMB_LOGIC:
+            hand = self.red_hand if player == Player.RED else self.blue_hand
+
+            bomb = self.cards.bombs[bomb_id - 1]
+            if len([i for i in hand if i.id == bomb_id]) >= bomb.rarity:
+                remove_count = bomb.rarity
+            else:
+                return False
+        else:
+            remove_count = 1
+
+        if self.remove_card(player, remove_count, bomb_id):
             bomb = self.cards.bombs[bomb_id - 1]
             self.game_board.apply_bomb(bomb.shape, int(coord[0]), int(coord[1]))
             self.last_played = bomb.id
             self.swap_turns()
             return True
-        else:
-            return False
+
+        return False
 
     def swap_turns(self):
         self.player *= -1

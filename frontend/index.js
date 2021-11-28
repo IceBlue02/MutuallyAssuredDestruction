@@ -650,7 +650,7 @@ class Game {
         if (this.playerTurn === this.player && lastPlayed) {
             played = this.p2hand.cards[this.p2hand.cards.length - 1];
             played.bombId = lastPlayed;
-        } else if (this.selectCard) played = this.selectedCard;
+        } else if (this.playedCard) played = this.playedCard;
 
         this.p2hand.cards = [];
         new Array(otherHand).fill(null).map(() => this.p2hand.addCard(-1, false));
@@ -802,9 +802,10 @@ class Game {
         });
         if (!outcome) return;
         this.p1hand.cards = this.p1hand.cards.filter((x) => x !== this.selectedCard);
-        await this.updateBoardAndHands(false);
+        this.playedCard = this.selectedCard;
         this.selectedCard = null;
         this.selectionActive = false;
+        await this.updateBoardAndHands(false);
 
         while ((await this.turnProm) !== this.player);
         this.newHand();
