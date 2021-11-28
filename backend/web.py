@@ -27,7 +27,8 @@ def get_hand_options():
 
 @app.route("/get_game_state", methods=["POST"])
 def get_game_state():
-    return jsonify(game.get_game_state())
+    player = request.json.get("player")
+    return jsonify(game.get_game_state(int(player)))
     return False
 
 @app.route("/await_turn", methods=["POST"])
